@@ -1,0 +1,7 @@
+.worktrees/
+/target/
+.env
+.env.*
+!.env.example
+*.jsonl
+
