@@ -1,0 +1,21 @@
+{
+  "evidenceDate": "2026-09-20",
+  "source": "https://www.deribit.com/api/v2/public/get_instrument?instrument_name=BTC-PERPETUAL",
+  "instrument": {
+    "base_currency": "BTC",
+    "contract_size": 10.0,
+    "future_type": "reversed",
+    "instrument_name": "BTC-PERPETUAL",
+    "instrument_type": "reversed",
+    "is_active": true,
+    "lot_size": 1,
+    "maker_commission": 0.00015,
+    "min_trade_amount": 10.0,
+    "quote_currency": "USD",
+    "settlement_currency": "BTC",
+    "settlement_period": "perpetual",
+    "state": "open",
+    "taker_commission": 0.00035,
+    "tick_size": 0.5
+  }
+}

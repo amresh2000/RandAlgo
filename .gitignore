@@ -4,4 +4,6 @@
 .env.*
 !.env.example
 *.jsonl
-
+__pycache__/
+*.pyc
+basis-sim/src/test/resources/wire/captures/
