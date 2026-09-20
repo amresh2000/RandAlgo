@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+  package="com.penguinsecure.basis.protocol.sbe"
+  id="1001"
+  version="1"
+  semanticVersion="1.0.0"
+  description="Basis OMS durable and process-boundary protocol"
+  byteOrder="littleEndian">
+
+  <types>
+    <composite name="messageHeader" description="SBE standard message header">
+      <type name="blockLength" primitiveType="uint16" />
+      <type name="templateId" primitiveType="uint16" />
+      <type name="schemaId" primitiveType="uint16" />
+      <type name="version" primitiveType="uint16" />
+    </composite>
+
+    <composite name="groupSizeEncoding" description="Repeating group dimensions">
+      <type name="blockLength" primitiveType="uint16" />
+      <type name="numInGroup" primitiveType="uint16" />
+    </composite>
+
+    <enum name="EventType" encodingType="uint8">
+      <validValue name="NULL_VALUE">0</validValue>
+      <validValue name="INSTRUMENT_DEFINITION">1</validValue>
+      <validValue name="BOOK_IMAGE">2</validValue>
+      <validValue name="BOOK_DELTA">3</validValue>
+      <validValue name="BOOK_TRUST">4</validValue>
+      <validValue name="OPPORTUNITY">5</validValue>
+      <validValue name="RISK_DECISION">6</validValue>
+      <validValue name="EXECUTION_GROUP">7</validValue>
+      <validValue name="ORDER_COMMAND">8</validValue>
+      <validValue name="ORDER_STATE">9</validValue>
+      <validValue name="FILL">10</validValue>
+      <validValue name="POSITION">11</validValue>
+      <validValue name="HEALTH">12</validValue>
+      <validValue name="OPERATOR_CONTROL">13</validValue>
+      <validValue name="SNAPSHOT_MARKER">14</validValue>
+      <validValue name="RECONCILIATION_RESULT">15</validValue>
+    </enum>
+
+    <enum name="Venue" encodingType="uint8">
+      <validValue name="NONE">0</validValue>
+      <validValue name="BYBIT">1</validValue>
+      <validValue name="DERIBIT">2</validValue>
+    </enum>
+
+    <enum name="ProductFamily" encodingType="uint8">
+      <validValue name="UNKNOWN">0</validValue>
+      <validValue name="LINEAR_PERPETUAL">1</validValue>
+      <validValue name="INVERSE_PERPETUAL">2</validValue>
+      <validValue name="LINEAR_FUTURE">3</validValue>
+      <validValue name="INVERSE_FUTURE">4</validValue>
+    </enum>
+
+    <enum name="LifecycleState" encodingType="uint8">
+      <validValue name="UNKNOWN">0</validValue>
+      <validValue name="PRE_LAUNCH">1</validValue>
+      <validValue name="TRADING">2</validValue>
+      <validValue name="SUSPENDED">3</validValue>
+      <validValue name="SETTLED">4</validValue>
+      <validValue name="EXPIRED">5</validValue>
+    </enum>
+
+    <enum name="BookEventKind" encodingType="uint8">
+      <validValue name="IMAGE">1</validValue>
+      <validValue name="DELTA">2</validValue>
+      <validValue name="RESET">3</validValue>
+    </enum>
+
+    <enum name="BookSide" encodingType="uint8">
+      <validValue name="BID">1</validValue>
+      <validValue name="ASK">2</validValue>
+    </enum>
+
+    <enum name="BookAction" encodingType="uint8">
+      <validValue name="UPSERT">1</validValue>
+      <validValue name="DELETE">2</validValue>
+    </enum>
+
+    <enum name="TrustState" encodingType="uint8">
+      <validValue name="DISCONNECTED">0</validValue>
+      <validValue name="SYNCING">1</validValue>
+      <validValue name="WARMING">2</validValue>
+      <validValue name="TRUSTED">3</validValue>
+    </enum>
+
+    <enum name="Direction" encodingType="uint8">
+      <validValue name="BUY_FIRST_SELL_SECOND">1</validValue>
+      <validValue name="SELL_FIRST_BUY_SECOND">2</validValue>
+    </enum>
+
+    <enum name="Decision" encodingType="uint8">
+      <validValue name="REJECT">0</validValue>
+      <validValue name="ALLOW">1</validValue>
+      <validValue name="ALLOW_REDUCING_ONLY">2</validValue>
+    </enum>
+
+    <enum name="OrderSide" encodingType="uint8">
+      <validValue name="BUY">1</validValue>
+      <validValue name="SELL">2</validValue>
+    </enum>
+
+    <enum name="OrderCommandType" encodingType="uint8">
+      <validValue name="CREATE">1</validValue>
+      <validValue name="CANCEL">2</validValue>
+      <validValue name="REPLACE">3</validValue>
+      <validValue name="UNWIND">4</validValue>
+    </enum>
+
+    <enum name="OrderLifecycle" encodingType="uint8">
+      <validValue name="PENDING_SEND">1</validValue>
+      <validValue name="SENT">2</validValue>
+      <validValue name="ACCEPTED">3</validValue>
+      <validValue name="PARTIALLY_FILLED">4</validValue>
+      <validValue name="FILLED">5</validValue>
+      <validValue name="CANCELLED">6</validValue>
+      <validValue name="REJECTED">7</validValue>
+      <validValue name="UNKNOWN">8</validValue>
+    </enum>
+
+    <enum name="TimeInForce" encodingType="uint8">
+      <validValue name="IOC">1</validValue>
+      <validValue name="FOK">2</validValue>
+      <validValue name="GTC">3</validValue>
+    </enum>
+
+    <enum name="HealthState" encodingType="uint8">
+      <validValue name="HEALTHY">0</validValue>
+      <validValue name="DEGRADED">1</validValue>
+      <validValue name="UNHEALTHY">2</validValue>
+      <validValue name="OVERFLOW">3</validValue>
+    </enum>
+
+    <enum name="ControlAction" encodingType="uint8">
+      <validValue name="DISARM">1</validValue>
+      <validValue name="ARM">2</validValue>
+      <validValue name="KILL">3</validValue>
+      <validValue name="SUSPEND_STRATEGY">4</validValue>
+      <validValue name="RESUME_STRATEGY">5</validValue>
+    </enum>
+
+    <enum name="ReconciliationStatus" encodingType="uint8">
+      <validValue name="MATCHED">0</validValue>
+      <validValue name="DIFFERENCE">1</validValue>
+      <validValue name="INCOMPLETE">2</validValue>
+      <validValue name="FAILED">3</validValue>
+    </enum>
+
+    <composite name="EventHeader" description="Common evidence envelope">
+      <ref name="eventType" type="EventType" />
+      <type name="eventSequence" primitiveType="uint64" />
+      <type name="producerId" primitiveType="uint16" />
+      <type name="producerEpoch" primitiveType="uint64" />
+      <type name="cellId" primitiveType="uint16" />
+      <ref name="venue" type="Venue" />
+      <type name="accountId" primitiveType="uint16" />
+      <type name="instrumentId" primitiveType="uint32" />
+      <type name="strategyId" primitiveType="uint32" />
+      <type name="configurationGeneration" primitiveType="uint64" />
+      <type name="sessionGeneration" primitiveType="uint64" />
+      <type name="correlationId" primitiveType="uint64" />
+      <type name="exchangeEpochNanos" primitiveType="int64" />
+      <type name="localReceiveEpochNanos" primitiveType="int64" />
+      <type name="localReceiveMonoNanos" primitiveType="int64" />
+      <type name="causeEventSequence" primitiveType="uint64" />
+      <type name="flags" primitiveType="uint32" />
+      <type name="reasonCode" primitiveType="uint16" />
+    </composite>
+
+    <composite name="StageTrace" description="Fixed end-to-end stage timestamps">
+      <type name="traceHigh" primitiveType="uint64" />
+      <type name="traceLow" primitiveType="uint64" />
+      <type name="kernelReceiveNanos" primitiveType="int64" />
+      <type name="decoderStartNanos" primitiveType="int64" />
+      <type name="decoderCompleteNanos" primitiveType="int64" />
+      <type name="ingressPublishNanos" primitiveType="int64" />
+      <type name="coreDequeueNanos" primitiveType="int64" />
+      <type name="bookAppliedNanos" primitiveType="int64" />
+      <type name="decisionNanos" primitiveType="int64" />
+      <type name="riskCompleteNanos" primitiveType="int64" />
+      <type name="commandEnqueueNanos" primitiveType="int64" />
+      <type name="commandDequeueNanos" primitiveType="int64" />
+      <type name="serializeCompleteNanos" primitiveType="int64" />
+      <type name="transportWriteNanos" primitiveType="int64" />
+    </composite>
+  </types>
+
+  <sbe:message name="InstrumentDefinition" id="1" description="Certified instrument metadata">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="productFamily" id="2" type="ProductFamily" />
+    <field name="lifecycle" id="3" type="LifecycleState" />
+    <field name="baseCurrencyId" id="4" type="uint16" />
+    <field name="quoteCurrencyId" id="5" type="uint16" />
+    <field name="settlementCurrencyId" id="6" type="uint16" />
+    <field name="collateralCurrencyId" id="7" type="uint16" />
+    <field name="priceScale" id="8" type="uint8" />
+    <field name="quantityScale" id="9" type="uint8" />
+    <field name="tickSize" id="10" type="int64" />
+    <field name="lotSize" id="11" type="int64" />
+    <field name="minimumQuantity" id="12" type="int64" />
+    <field name="maximumQuantity" id="13" type="int64" />
+    <field name="contractMultiplier" id="14" type="int64" />
+    <field name="expiryEpochNanos" id="15" type="int64" />
+    <field name="metadataHashHigh" id="16" type="uint64" sinceVersion="1" />
+    <field name="metadataHashLow" id="17" type="uint64" sinceVersion="1" />
+    <field name="multiplierScale" id="18" type="uint8" sinceVersion="1" />
+    <field name="feeSourceId" id="19" type="uint16" sinceVersion="1" />
+  </sbe:message>
+
+  <sbe:message name="BookImage" id="2" description="Bounded complete book image">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="kind" id="2" type="BookEventKind" />
+    <field name="feedProfileId" id="3" type="uint16" />
+    <field name="bookEpoch" id="4" type="uint64" />
+    <field name="venueSequence" id="5" type="uint64" />
+    <field name="venueChangeId" id="6" type="uint64" />
+    <group name="bids" id="10" dimensionType="groupSizeEncoding">
+      <field name="priceTicks" id="11" type="int64" />
+      <field name="quantityLots" id="12" type="int64" />
+    </group>
+    <group name="asks" id="20" dimensionType="groupSizeEncoding">
+      <field name="priceTicks" id="21" type="int64" />
+      <field name="quantityLots" id="22" type="int64" />
+    </group>
+  </sbe:message>
+
+  <sbe:message name="BookDelta" id="3" description="Single normalized book mutation">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="kind" id="2" type="BookEventKind" />
+    <field name="side" id="3" type="BookSide" />
+    <field name="action" id="4" type="BookAction" />
+    <field name="feedProfileId" id="5" type="uint16" />
+    <field name="bookEpoch" id="6" type="uint64" />
+    <field name="venueSequence" id="7" type="uint64" />
+    <field name="venueChangeId" id="8" type="uint64" />
+    <field name="priceTicks" id="9" type="int64" />
+    <field name="quantityLots" id="10" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="BookTrust" id="4" description="Book trust transition">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="trust" id="2" type="TrustState" />
+    <field name="feedProfileId" id="3" type="uint16" />
+    <field name="bookEpoch" id="4" type="uint64" />
+    <field name="lastVenueSequence" id="5" type="uint64" />
+  </sbe:message>
+
+  <sbe:message name="Opportunity" id="5" description="Evidence-complete executable opportunity">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="trace" id="2" type="StageTrace" />
+    <field name="direction" id="3" type="Direction" />
+    <field name="firstInstrumentId" id="4" type="uint32" />
+    <field name="secondInstrumentId" id="5" type="uint32" />
+    <field name="firstBookEpoch" id="6" type="uint64" />
+    <field name="firstBookSequence" id="7" type="uint64" />
+    <field name="secondBookEpoch" id="8" type="uint64" />
+    <field name="secondBookSequence" id="9" type="uint64" />
+    <field name="firstReceiveMonoNanos" id="10" type="int64" />
+    <field name="secondReceiveMonoNanos" id="11" type="int64" />
+    <field name="decisionMonoNanos" id="12" type="int64" />
+    <field name="firstAgeNanos" id="13" type="uint64" />
+    <field name="secondAgeNanos" id="14" type="uint64" />
+    <field name="receiveSkewNanos" id="15" type="uint64" />
+    <field name="maximumFirstAgeNanos" id="16" type="uint64" />
+    <field name="maximumSecondAgeNanos" id="17" type="uint64" />
+    <field name="maximumSkewNanos" id="18" type="uint64" />
+    <field name="firstFeedProfileId" id="19" type="uint16" />
+    <field name="secondFeedProfileId" id="20" type="uint16" />
+    <field name="canonicalQuantity" id="21" type="int64" />
+    <field name="grossEdge" id="22" type="int64" />
+    <field name="fees" id="23" type="int64" />
+    <field name="carry" id="24" type="int64" />
+    <field name="slippage" id="25" type="int64" />
+    <field name="liquidityHaircut" id="26" type="int64" />
+    <field name="latencyRisk" id="27" type="int64" />
+    <field name="conversionCost" id="28" type="int64" />
+    <field name="safetyReserve" id="29" type="int64" />
+    <field name="netEdge" id="30" type="int64" />
+    <field name="expiryMonoNanos" id="31" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="RiskDecision" id="6" description="Pre-trade risk outcome">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="trace" id="2" type="StageTrace" />
+    <field name="decision" id="3" type="Decision" />
+    <field name="reservationId" id="4" type="uint64" />
+    <field name="reservedExposure" id="5" type="int64" />
+    <field name="reservationExpiryMonoNanos" id="6" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="ExecutionGroup" id="7" description="Initiation and hedge group state">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="groupId" id="2" type="uint64" />
+    <field name="opportunitySequence" id="3" type="uint64" />
+    <field name="reservationId" id="4" type="uint64" />
+    <field name="initiatingFilledQuantity" id="5" type="int64" />
+    <field name="hedgedQuantity" id="6" type="int64" />
+    <field name="maximumImbalance" id="7" type="int64" />
+    <field name="stateCode" id="8" type="uint16" />
+  </sbe:message>
+
+  <sbe:message name="OrderCommand" id="8" description="Bounded order-agent command">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="trace" id="2" type="StageTrace" />
+    <field name="localOrderIdHigh" id="3" type="uint64" />
+    <field name="localOrderIdLow" id="4" type="uint64" />
+    <field name="groupId" id="5" type="uint64" />
+    <field name="commandType" id="6" type="OrderCommandType" />
+    <field name="side" id="7" type="OrderSide" />
+    <field name="timeInForce" id="8" type="TimeInForce" />
+    <field name="priceTicks" id="9" type="int64" />
+    <field name="quantityLots" id="10" type="int64" />
+    <field name="deadlineMonoNanos" id="11" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="OrderState" id="9" description="Authoritative order lifecycle fact">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="localOrderIdHigh" id="2" type="uint64" />
+    <field name="localOrderIdLow" id="3" type="uint64" />
+    <field name="groupId" id="4" type="uint64" />
+    <field name="lifecycle" id="5" type="OrderLifecycle" />
+    <field name="priceTicks" id="6" type="int64" />
+    <field name="originalQuantityLots" id="7" type="int64" />
+    <field name="filledQuantityLots" id="8" type="int64" />
+    <field name="remainingQuantityLots" id="9" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="Fill" id="10" description="Deduplicated fill increment">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="trace" id="2" type="StageTrace" />
+    <field name="localOrderIdHigh" id="3" type="uint64" />
+    <field name="localOrderIdLow" id="4" type="uint64" />
+    <field name="groupId" id="5" type="uint64" />
+    <field name="venueFillIdHash" id="6" type="uint64" />
+    <field name="side" id="7" type="OrderSide" />
+    <field name="priceTicks" id="8" type="int64" />
+    <field name="quantityLots" id="9" type="int64" />
+    <field name="feeAmount" id="10" type="int64" />
+    <field name="feeCurrencyId" id="11" type="uint16" />
+  </sbe:message>
+
+  <sbe:message name="Position" id="11" description="Canonical position fact">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="positionQuantity" id="2" type="int64" />
+    <field name="canonicalExposure" id="3" type="int64" />
+    <field name="averagePriceTicks" id="4" type="int64" />
+    <field name="realizedPnl" id="5" type="int64" />
+    <field name="unrealizedPnl" id="6" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="Health" id="12" description="Component and path health fact">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="componentId" id="2" type="uint16" />
+    <field name="state" id="3" type="HealthState" />
+    <field name="queueDepth" id="4" type="uint32" />
+    <field name="oldestQueueAgeNanos" id="5" type="uint64" />
+    <field name="lastProgressMonoNanos" id="6" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="OperatorControl" id="13" description="Audited operator control request">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="action" id="2" type="ControlAction" />
+    <field name="scopeId" id="3" type="uint32" />
+    <field name="effectiveMonoNanos" id="4" type="int64" />
+    <field name="approvalHashHigh" id="5" type="uint64" />
+    <field name="approvalHashLow" id="6" type="uint64" />
+  </sbe:message>
+
+  <sbe:message name="SnapshotMarker" id="14" description="Replay snapshot boundary">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="snapshotId" id="2" type="uint64" />
+    <field name="journalPosition" id="3" type="uint64" />
+    <field name="stateHashHigh" id="4" type="uint64" />
+    <field name="stateHashLow" id="5" type="uint64" />
+  </sbe:message>
+
+  <sbe:message name="ReconciliationResult" id="15" description="Venue reconciliation outcome">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="status" id="2" type="ReconciliationStatus" />
+    <field name="openOrderCount" id="3" type="uint32" />
+    <field name="unknownOrderCount" id="4" type="uint32" />
+    <field name="positionDifference" id="5" type="int64" />
+    <field name="balanceDifference" id="6" type="int64" />
+    <field name="reconciledThroughEpochNanos" id="7" type="int64" />
+  </sbe:message>
+</sbe:messageSchema>
