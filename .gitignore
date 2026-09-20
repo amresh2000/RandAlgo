@@ -1,5 +1,8 @@
 .worktrees/
 /target/
+**/target/
+**/dependency-reduced-pom.xml
+**/.jqwik-database
 .env
 .env.*
 !.env.example

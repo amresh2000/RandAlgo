@@ -1,1 +1,2 @@
 *.md text whitespace=-blank-at-eol,-blank-at-eof
+mvnw.cmd text eol=crlf whitespace=cr-at-eol
