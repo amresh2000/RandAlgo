@@ -9,15 +9,23 @@
 | Capability | Contract | Evidence |
 |---|---|---|
 | Instrument metadata | `GET /v5/market/instruments-info` | OBSERVED against production |
-| Inverse public feed | `wss://stream.bybit.com/v5/public/inverse` | DOCUMENTED; capture pending |
-| Bounded book | `orderbook.50.<symbol>`, nominal 20 ms | DOCUMENTED; capture pending |
+| Inverse public feed | `wss://stream.bybit.com/v5/public/inverse` | DOCUMENTED; short Phase 0 smoke observed |
+| Bounded book | `orderbook.50.<symbol>`, nominal 20 ms | DOCUMENTED; codec/replay fixture tested |
 | Book updates | Initial snapshot, deltas, later snapshot replaces local state | DOCUMENTED |
 | Sequence evidence | Preserve `u`, `seq`, `ts`, and `cts` independently | DOCUMENTED |
 | Order entry/private data | V5 trade WebSocket plus separate private WebSocket | DOCUMENTED; Phase 9 certification |
 
 No exact `u + 1` continuity rule is admitted. A received snapshot replaces the
 book. A zero delta quantity deletes the level. Observed reconnect, duplicate,
-restart, and gap behavior must be added from captures before Phase 3.
+restart, and gap behavior still require representative captures before production
+certification. Phase 3 therefore preserves the native evidence and revokes health
+on malformed input, disconnect, or failed publication without inventing a gap rule.
+
+The Phase 3 parser fixture at
+`basis-sim/src/test/resources/wire/market-data/bybit-orderbook-50-snapshot.json`
+is a sanitized official-documentation example, not a production capture. Its hash
+is pinned by the adjacent `SHA256SUMS` file and replayed through the production
+parser to a stable normalized digest.
 
 ## Observed representative instruments
 

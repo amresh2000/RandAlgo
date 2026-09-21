@@ -25,5 +25,20 @@
       <groupId>com.penguinsecure.basis</groupId>
       <artifactId>basis-venue-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.penguinsecure.basis</groupId>
+      <artifactId>basis-venue-bybit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.penguinsecure.basis</groupId>
+      <artifactId>basis-venue-deribit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-buffer</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
