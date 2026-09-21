@@ -193,6 +193,22 @@ public final class ExecutionGroupTable {
         return valid(slot, generation) ? configurationGenerations[slot] : 0;
     }
 
+    public int capacity() {
+        return states.length;
+    }
+
+    public int generationAt(final int slot) {
+        return slot >= 0 && slot < states.length ? generations[slot] : 0;
+    }
+
+    public ExecutionGroupState stateAt(final int slot) {
+        return slot >= 0 && slot < states.length ? states[slot] : ExecutionGroupState.FREE;
+    }
+
+    public long deadline(final int slot, final int generation) {
+        return valid(slot, generation) ? deadlines[slot] : 0;
+    }
+
     public OemsStatus abandonReserved(final int slot, final int generation) {
         if (!valid(slot, generation)) return OemsStatus.STALE_HANDLE;
         if (states[slot] != ExecutionGroupState.RESERVED) return OemsStatus.INVALID_STATE;

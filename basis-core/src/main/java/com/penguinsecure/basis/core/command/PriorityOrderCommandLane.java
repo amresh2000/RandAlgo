@@ -53,6 +53,16 @@ public final class PriorityOrderCommandLane {
         return drained;
     }
 
+    public int drainUrgent(final OrderCommandHandler handler, final int limit) {
+        if (handler == null || limit <= 0) return 0;
+        return urgent.drain(handler, view, limit);
+    }
+
+    public int drainNormal(final OrderCommandHandler handler, final int limit) {
+        if (handler == null || limit <= 0) return 0;
+        return normal.drain(handler, view, limit);
+    }
+
     public int size(final OrderUrgency urgency) {
         return urgency == OrderUrgency.URGENT ? urgent.size() : normal.size();
     }

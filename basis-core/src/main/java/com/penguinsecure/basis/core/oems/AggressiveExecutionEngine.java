@@ -197,6 +197,29 @@ public final class AggressiveExecutionEngine {
                 : OemsStatus.INVALID_STATE;
     }
 
+    public OemsStatus onWriteFailed(
+            final int groupSlot,
+            final int groupGeneration,
+            final int childSlot,
+            final int childGeneration) {
+        if (!sameGroup(groupSlot, groupGeneration, childSlot, childGeneration)) {
+            return OemsStatus.CONFLICT;
+        }
+        final OemsStatus childStatus = children.writeFailed(childSlot, childGeneration);
+        if (childStatus != OemsStatus.OK && childStatus != OemsStatus.DUPLICATE) return childStatus;
+        if (children.role(childSlot, childGeneration) != ChildOrderRole.INITIATION) {
+            return markUnknown(groupSlot, groupGeneration);
+        }
+        final int reservationSlot = groups.reservationSlot(groupSlot, groupGeneration);
+        final int reservationGeneration = groups.reservationGeneration(groupSlot, groupGeneration);
+        groups.fail(groupSlot, groupGeneration);
+        final RiskReservationStatus reservationStatus =
+                reservations.releaseAuthoritatively(reservationSlot, reservationGeneration);
+        return reservationStatus == RiskReservationStatus.OK
+                ? OemsStatus.OK
+                : OemsStatus.INVALID_STATE;
+    }
+
     public OemsStatus onInitiationFill(
             final AggressiveExecutionPlan plan,
             final int groupSlot,
@@ -304,6 +327,22 @@ public final class AggressiveExecutionEngine {
         return children.markSent(childSlot, childGeneration);
     }
 
+    public OemsStatus onRejected(
+            final int groupSlot,
+            final int groupGeneration,
+            final int childSlot,
+            final int childGeneration) {
+        return onTerminalWithoutFill(groupSlot, groupGeneration, childSlot, childGeneration, false);
+    }
+
+    public OemsStatus onCancelled(
+            final int groupSlot,
+            final int groupGeneration,
+            final int childSlot,
+            final int childGeneration) {
+        return onTerminalWithoutFill(groupSlot, groupGeneration, childSlot, childGeneration, true);
+    }
+
     public OemsStatus onHedgeFill(
             final int groupSlot,
             final int groupGeneration,
@@ -389,6 +428,35 @@ public final class AggressiveExecutionEngine {
         children.markSendPending(destination.slot(), destination.generation());
         groups.markUnwinding(groupSlot, groupGeneration);
         return OemsStatus.OK;
+    }
+
+    private OemsStatus onTerminalWithoutFill(
+            final int groupSlot,
+            final int groupGeneration,
+            final int childSlot,
+            final int childGeneration,
+            final boolean cancelled) {
+        if (!sameGroup(groupSlot, groupGeneration, childSlot, childGeneration)) {
+            return OemsStatus.CONFLICT;
+        }
+        final OemsStatus childStatus =
+                cancelled
+                        ? children.cancel(childSlot, childGeneration)
+                        : children.reject(childSlot, childGeneration);
+        if (childStatus != OemsStatus.OK && childStatus != OemsStatus.DUPLICATE) {
+            return childStatus;
+        }
+        if (children.role(childSlot, childGeneration) != ChildOrderRole.INITIATION) {
+            return markUnknown(groupSlot, groupGeneration);
+        }
+        final int reservationSlot = groups.reservationSlot(groupSlot, groupGeneration);
+        final int reservationGeneration = groups.reservationGeneration(groupSlot, groupGeneration);
+        groups.fail(groupSlot, groupGeneration);
+        final RiskReservationStatus reservationStatus =
+                reservations.releaseAuthoritatively(reservationSlot, reservationGeneration);
+        return reservationStatus == RiskReservationStatus.OK
+                ? OemsStatus.OK
+                : OemsStatus.INVALID_STATE;
     }
 
     private OemsStatus markUnknown(final int groupSlot, final int groupGeneration) {
