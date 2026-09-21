@@ -180,6 +180,18 @@ public final class FixedDepthOrderBook {
         return capacity;
     }
 
+    public int venueId() {
+        return venueId;
+    }
+
+    public int instrumentId() {
+        return instrumentId;
+    }
+
+    public int feedProfileId() {
+        return feedProfileId;
+    }
+
     public int depth(final BookSide side) {
         return side == BookSide.BID ? bidSizes[activeIndex] : askSizes[activeIndex];
     }

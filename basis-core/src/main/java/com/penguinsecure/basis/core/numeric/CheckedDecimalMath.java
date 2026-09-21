@@ -42,6 +42,15 @@ public final class CheckedDecimalMath {
         return result.set(value).status();
     }
 
+    public static NumericStatus subtract(
+            final long left, final long right, final MutableLongResult result) {
+        final long value = left - right;
+        if (((left ^ right) & (left ^ value)) < 0) {
+            return result.fail(NumericStatus.OVERFLOW).status();
+        }
+        return result.set(value).status();
+    }
+
     public static NumericStatus multiply(
             final long left, final long right, final MutableLongResult result) {
         if (left == 0 || right == 0) {
@@ -132,9 +141,44 @@ public final class CheckedDecimalMath {
         reducedDivisor /= multiplierGcd;
 
         if (multiply(reducedValue, reducedMultiplier, scratch) != NumericStatus.OK) {
-            return result.fail(NumericStatus.OVERFLOW).status();
+            if (reducedValue < 0 || reducedMultiplier < 0 || reducedDivisor < 0) {
+                return result.fail(NumericStatus.OVERFLOW).status();
+            }
+            return dividePositive128(
+                    reducedValue, reducedMultiplier, reducedDivisor, rounding, result);
         }
         return divide(scratch.value(), reducedDivisor, rounding, result);
+    }
+
+    private static NumericStatus dividePositive128(
+            final long left,
+            final long right,
+            final long divisor,
+            final RoundingPolicy rounding,
+            final MutableLongResult result) {
+        final long high = Math.multiplyHigh(left, right);
+        final long low = left * right;
+        if (high >= divisor) return result.fail(NumericStatus.OVERFLOW).status();
+
+        long remainder = high;
+        long quotient = 0;
+        for (int bit = Long.SIZE - 1; bit >= 0; bit--) {
+            remainder = (remainder << 1) | ((low >>> bit) & 1L);
+            if (Long.compareUnsigned(remainder, divisor) >= 0) {
+                remainder -= divisor;
+                quotient |= 1L << bit;
+            }
+        }
+        if (quotient < 0) return result.fail(NumericStatus.OVERFLOW).status();
+        if (remainder == 0) return result.set(quotient).status();
+        if (rounding == RoundingPolicy.EXACT) {
+            return result.fail(NumericStatus.SCALE_LOSS).status();
+        }
+        return switch (rounding) {
+            case TOWARD_ZERO, FLOOR -> result.set(quotient).status();
+            case AWAY_FROM_ZERO, CEILING -> add(quotient, 1, result);
+            case EXACT -> throw new AssertionError("handled above");
+        };
     }
 
     private static long greatestCommonDivisor(final long left, final long right) {

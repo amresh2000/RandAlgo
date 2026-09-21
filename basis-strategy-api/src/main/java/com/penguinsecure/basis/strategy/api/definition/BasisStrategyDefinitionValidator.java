@@ -1,5 +1,7 @@
 package com.penguinsecure.basis.strategy.api.definition;
 
+import com.penguinsecure.basis.strategy.api.model.StrategyModelRegistry;
+
 /** Fail-closed structural validation before a definition enters the runtime catalog. */
 public final class BasisStrategyDefinitionValidator {
     private BasisStrategyDefinitionValidator() {}
@@ -49,6 +51,23 @@ public final class BasisStrategyDefinitionValidator {
         return validRisk(definition.riskLimits())
                 ? StrategyValidationStatus.VALID
                 : StrategyValidationStatus.INVALID_RISK_LIMIT;
+    }
+
+    public static StrategyValidationStatus validate(
+            final BasisStrategyDefinition definition, final StrategyModelRegistry registry) {
+        final StrategyValidationStatus structural = validate(definition);
+        if (structural != StrategyValidationStatus.VALID) return structural;
+        if (registry == null || !registry.frozen())
+            return StrategyValidationStatus.INVALID_MODEL_ID;
+        final StrategyModelIds models = definition.modelIds();
+        return registry.payoff(models.firstPayoffModelId()) != null
+                        && registry.payoff(models.secondPayoffModelId()) != null
+                        && registry.hedgeRatio(models.hedgeRatioModelId()) != null
+                        && registry.carry(models.carryModelId()) != null
+                        && registry.signal(models.signalModelId()) != null
+                        && registry.executionPolicy(models.executionPolicyId()) != null
+                ? StrategyValidationStatus.VALID
+                : StrategyValidationStatus.INVALID_MODEL_ID;
     }
 
     private static boolean validLeg(final StrategyLegDefinition leg) {
