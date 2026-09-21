@@ -1,7 +1,10 @@
 package com.penguinsecure.basis.venue.api.marketdata;
 
+import com.penguinsecure.basis.core.book.BookUpdateType;
+import com.penguinsecure.basis.core.book.BookUpdateView;
+
 /** Caller-owned bounded scratch event. Arrays are allocated once at construction. */
-public final class MutableMarketDataEvent {
+public final class MutableMarketDataEvent implements BookUpdateView {
     public static final int ABSOLUTE_MAX_DEPTH = 200;
 
     private final long[] bidPriceTicks;
@@ -87,6 +90,17 @@ public final class MutableMarketDataEvent {
 
     public MarketDataEventKind kind() {
         return kind;
+    }
+
+    @Override
+    public BookUpdateType updateType() {
+        if (kind == null) return null;
+        return switch (kind) {
+            case IMAGE -> BookUpdateType.IMAGE;
+            case SNAPSHOT -> BookUpdateType.SNAPSHOT;
+            case DELTA -> BookUpdateType.DELTA;
+            case RESET -> BookUpdateType.RESET;
+        };
     }
 
     public void kind(final MarketDataEventKind value) {
