@@ -56,6 +56,21 @@ public final class JsonByteCursor {
         return true;
     }
 
+    /**
+     * Consumes one exact ASCII JSON literal such as {@code true}, {@code false}, or {@code null}.
+     */
+    public boolean consumeLiteral(final String literal) {
+        if (literal == null || literal.isEmpty()) return false;
+        skipWhitespace();
+        if (end - index < literal.length()) return fail(MarketDataParseStatus.MALFORMED);
+        for (int i = 0; i < literal.length(); i++) {
+            if (input.getByte(index + i) != (byte) literal.charAt(i))
+                return fail(MarketDataParseStatus.MALFORMED);
+        }
+        index += literal.length();
+        return true;
+    }
+
     public boolean readAsciiString(final ByteToken token) {
         skipWhitespace();
         if (index >= end || input.getByte(index++) != '"')
@@ -93,6 +108,28 @@ public final class JsonByteCursor {
             if (input.getByte(token.offset() + i) != (byte) ascii.charAt(i)) return false;
         }
         return true;
+    }
+
+    /** Copies an already-read ASCII token without materializing a {@link String}. */
+    public boolean copyToken(final ByteToken token, final byte[] destination, final int offset) {
+        if (token == null
+                || destination == null
+                || offset < 0
+                || destination.length - offset < token.length()) return false;
+        for (int i = 0; i < token.length(); i++) {
+            destination[offset + i] = input.getByte(token.offset() + i);
+        }
+        return true;
+    }
+
+    /** Stable non-zero FNV-1a hash of an already-read ASCII token. */
+    public long tokenHash64(final ByteToken token) {
+        long hash = 0xcbf29ce484222325L;
+        for (int i = 0; i < token.length(); i++) {
+            hash ^= input.getByte(token.offset() + i) & 0xffL;
+            hash *= 0x100000001b3L;
+        }
+        return hash == 0 ? 1 : hash;
     }
 
     public boolean readPositiveLong(final MutableJsonLong target) {

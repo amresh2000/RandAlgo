@@ -1,7 +1,7 @@
 # Bybit Capability Contract
 
 **Evidence date:** 2026-09-22  
-**Scope:** Public metadata and bounded public order-book inputs for Phase 0  
+**Scope:** Public market data plus the offline-certified authenticated boundary through Phase 9  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
 ## Admitted endpoints and profiles
@@ -13,7 +13,35 @@
 | Bounded book | `orderbook.50.<symbol>`, nominal 20 ms | DOCUMENTED; codec/replay fixture tested |
 | Book updates | Initial snapshot, deltas, later snapshot replaces local state | DOCUMENTED |
 | Sequence evidence | Preserve `u`, `seq`, `ts`, and `cts` independently | DOCUMENTED |
-| Order entry/private data | V5 trade WebSocket plus separate private WebSocket | DOCUMENTED; Phase 9 certification |
+| Order entry/private data | V5 trade WebSocket plus separate private WebSocket | DOCUMENTED; Phase 9 fixture-certified, live testnet pending |
+| Reconciliation | Signed V5 REST order realtime/history pages | DOCUMENTED; bounded parser/transport fixture-certified |
+
+## Phase 9 authenticated boundary
+
+The adapter now has separate trade and private session coordinators, strict
+authentication/subscription parsers, deterministic IOC create/cancel encoders,
+fixed-capacity correlation and execution-deduplication tables, authoritative
+private order/execution normalization, rate feedback, and signed bounded HTTP
+order reconciliation. A trade-command success is only transport acceptance;
+order and execution streams remain authoritative. An unresolved write or a
+rejected cancel becomes `WRITE_AMBIGUOUS` and enters the existing UNKNOWN /
+reconciliation path rather than being retransmitted.
+
+The initial admitted order profile is inverse `BTCUSD`, integer contract
+quantity, price scale 2, and a 5,000 ms receive window. This is an implementation
+profile, not authorization to trade. Additional symbols/categories require a
+separate certified profile.
+
+Fixture certification covers exact HMAC/request bytes, credential redaction and
+zeroization, private control messages, command correlation, order/execution
+facts, duplicate/conflicting execution evidence, reconnect ambiguity, REST
+pagination, cursor encoding, and fail-closed malformed inputs. Mainnet order
+transmission is not assembled in Phase 9.
+
+Live testnet certification is still pending company-provided, withdrawal-disabled
+credentials and explicit authorization. The outstanding checks are recorded in
+`docs/phase-9-bybit-gateway-runbook.md` and must pass before this capability is
+marked production-certified.
 
 No exact `u + 1` continuity rule is admitted. A received snapshot replaces the
 book. A zero delta quantity deletes the level. Observed reconnect, duplicate,
@@ -65,6 +93,13 @@ and a slow payoff oracle. Metadata similarity is not sufficient authorization.
 - Account-specific maker/taker fees, account mode, order limits, and entitlement.
 - Measured endpoint RTT/jitter from candidate regions.
 - Exact amount/payoff examples reconciled to venue calculations.
+
+## Outstanding Phase 9 evidence
+
+- Authenticated testnet trade/private connection and heartbeat/reconnect captures.
+- Create, partial/full fill, cancel race, reject, lost response, and rate-limit observations.
+- Account mode, order caps, fee tier, IP allowlist, and cancel-on-disconnect scope.
+- REST reconciliation agreement with private-stream facts across reconnect.
 
 ## Sources
 
