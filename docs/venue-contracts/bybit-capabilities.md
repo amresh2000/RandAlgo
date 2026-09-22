@@ -1,6 +1,6 @@
 # Bybit Capability Contract
 
-**Evidence date:** 2026-09-20  
+**Evidence date:** 2026-09-22  
 **Scope:** Public metadata and bounded public order-book inputs for Phase 0  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
@@ -20,6 +20,12 @@ book. A zero delta quantity deletes the level. Observed reconnect, duplicate,
 restart, and gap behavior still require representative captures before production
 certification. Phase 3 therefore preserves the native evidence and revokes health
 on malformed input, disconnect, or failed publication without inventing a gap rule.
+
+A live public `orderbook.50.BTCUSD` run also produced bounded-window deltas whose
+delete target was no longer retained locally. The observation runner therefore
+uses the core book's explicit bounded-delta mode: unknown deletes are ignored,
+in-window inserts evict the worst retained level, and worse-than-window inserts
+are ignored. Strict full-depth consumers retain the original fail-closed behavior.
 
 The Phase 3 parser fixture at
 `basis-sim/src/test/resources/wire/market-data/bybit-orderbook-50-snapshot.json`

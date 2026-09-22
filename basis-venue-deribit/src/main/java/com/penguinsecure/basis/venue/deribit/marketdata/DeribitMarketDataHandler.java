@@ -32,6 +32,7 @@ public final class DeribitMarketDataHandler extends SimpleChannelInboundHandler<
     private final DeribitSessionListener sessionListener;
     private final MutableMarketDataEvent event;
     private final DeribitByteBufInput rawInput = new DeribitByteBufInput();
+    private volatile MarketDataParseStatus lastParseStatus = MarketDataParseStatus.OK;
 
     public DeribitMarketDataHandler(
             final MarketDataFeedProfile profile,
@@ -104,6 +105,7 @@ public final class DeribitMarketDataHandler extends SimpleChannelInboundHandler<
                             receiveEpochNanos,
                             receiveMonoNanos,
                             event);
+            lastParseStatus = status;
             if (status != MarketDataParseStatus.OK) {
                 publishMalformed(status);
             } else if (!sink.publish(event)) {
@@ -145,6 +147,7 @@ public final class DeribitMarketDataHandler extends SimpleChannelInboundHandler<
     }
 
     private void publishMalformed(final MarketDataParseStatus status) {
+        lastParseStatus = status;
         healthWord.publish(
                 LaneHealthState.DEGRADED,
                 status == MarketDataParseStatus.UNSUPPORTED_PROFILE
@@ -153,6 +156,11 @@ public final class DeribitMarketDataHandler extends SimpleChannelInboundHandler<
                 producerEpoch,
                 sessionGeneration,
                 profile.instrumentId());
+    }
+
+    /** Latest parser/control classification for cold-path operator diagnostics. */
+    public MarketDataParseStatus lastParseStatus() {
+        return lastParseStatus;
     }
 
     private static boolean contains(final TextWebSocketFrame frame, final String ascii) {

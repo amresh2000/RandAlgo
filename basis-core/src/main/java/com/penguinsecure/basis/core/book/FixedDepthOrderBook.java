@@ -17,6 +17,7 @@ public final class FixedDepthOrderBook {
     private final int warmupUpdatesAfterImage;
     private final BookSequenceMode sequenceMode;
     private final BookSequenceField sequenceField;
+    private final boolean boundedDeltaDepth;
     private final long[][] bidPrices;
     private final long[][] bidQuantities;
     private final long[][] askPrices;
@@ -47,6 +48,32 @@ public final class FixedDepthOrderBook {
             final int warmupUpdatesAfterImage,
             final BookSequenceMode sequenceMode,
             final BookSequenceField sequenceField) {
+        this(
+                venueId,
+                instrumentId,
+                feedProfileId,
+                capacity,
+                tickSize,
+                lotSize,
+                staleAfterNanos,
+                warmupUpdatesAfterImage,
+                sequenceMode,
+                sequenceField,
+                false);
+    }
+
+    public FixedDepthOrderBook(
+            final int venueId,
+            final int instrumentId,
+            final int feedProfileId,
+            final int capacity,
+            final long tickSize,
+            final long lotSize,
+            final long staleAfterNanos,
+            final int warmupUpdatesAfterImage,
+            final BookSequenceMode sequenceMode,
+            final BookSequenceField sequenceField,
+            final boolean boundedDeltaDepth) {
         if (venueId <= 0 || instrumentId <= 0 || feedProfileId <= 0) {
             throw new IllegalArgumentException("route IDs must be positive");
         }
@@ -69,6 +96,7 @@ public final class FixedDepthOrderBook {
         this.warmupUpdatesAfterImage = warmupUpdatesAfterImage;
         this.sequenceMode = sequenceMode;
         this.sequenceField = sequenceField;
+        this.boundedDeltaDepth = boundedDeltaDepth;
         bidPrices = new long[][] {new long[capacity], new long[capacity]};
         bidQuantities = new long[][] {new long[capacity], new long[capacity]};
         askPrices = new long[][] {new long[capacity], new long[capacity]};
@@ -433,7 +461,10 @@ public final class FixedDepthOrderBook {
             position++;
         final boolean found = position < size && prices[position] == price;
         if (quantity == 0) {
-            if (!found) return BookRejectionReason.INVALID_DELETE;
+            if (!found) {
+                if (boundedDeltaDepth) return BookRejectionReason.NONE;
+                return BookRejectionReason.INVALID_DELETE;
+            }
             final int moved = size - position - 1;
             if (moved > 0) {
                 System.arraycopy(prices, position + 1, prices, position, moved);
@@ -443,15 +474,16 @@ public final class FixedDepthOrderBook {
         } else if (found) {
             quantities[position] = quantity;
         } else {
-            if (size == capacity) return BookRejectionReason.CAPACITY;
-            final int moved = size - position;
+            if (size == capacity && !boundedDeltaDepth) return BookRejectionReason.CAPACITY;
+            if (size == capacity && position == size) return BookRejectionReason.NONE;
+            final int moved = Math.min(size, capacity - 1) - position;
             if (moved > 0) {
                 System.arraycopy(prices, position, prices, position + 1, moved);
                 System.arraycopy(quantities, position, quantities, position + 1, moved);
             }
             prices[position] = price;
             quantities[position] = quantity;
-            size++;
+            if (size < capacity) size++;
         }
         if (side == BookSide.BID) bidSizes[candidate] = size;
         else askSizes[candidate] = size;

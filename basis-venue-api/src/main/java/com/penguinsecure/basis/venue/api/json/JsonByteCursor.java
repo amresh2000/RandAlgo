@@ -128,18 +128,37 @@ public final class JsonByteCursor {
     }
 
     public boolean readScaledDecimal(final int scale, final MutableJsonLong target) {
+        return readScaledDecimal(scale, target, false);
+    }
+
+    /** Reads a JSON number and permits an exponent only when exact at the requested scale. */
+    public boolean readScaledDecimalWithExponent(final int scale, final MutableJsonLong target) {
+        return readScaledDecimal(scale, target, true);
+    }
+
+    private boolean readScaledDecimal(
+            final int scale, final MutableJsonLong target, final boolean allowExponent) {
         skipWhitespace();
-        if (index < end && input.getByte(index) == '"')
-            return readScaledDecimalString(scale, target);
+        final boolean quoted = index < end && input.getByte(index) == '"';
+        if (quoted) index++;
         final int start = index;
         while (index < end) {
             final byte value = input.getByte(index);
-            if (value == ',' || value == ']' || value == '}' || isWhitespace(value)) break;
+            if ((quoted && value == '"')
+                    || (!quoted
+                            && (value == ','
+                                    || value == ']'
+                                    || value == '}'
+                                    || isWhitespace(value)))) break;
             if (index - start >= maximumTokenBytes)
                 return fail(MarketDataParseStatus.TOKEN_TOO_LONG);
             index++;
         }
-        return parseScaled(start, index - start, scale, target);
+        final int length = index - start;
+        if (quoted && (index >= end || input.getByte(index++) != '"')) {
+            return fail(MarketDataParseStatus.MALFORMED);
+        }
+        return parseScaled(start, length, scale, target, allowExponent);
     }
 
     public boolean skipValue() {
@@ -217,6 +236,15 @@ public final class JsonByteCursor {
 
     private boolean parseScaled(
             final int offset, final int length, final int scale, final MutableJsonLong target) {
+        return parseScaled(offset, length, scale, target, false);
+    }
+
+    private boolean parseScaled(
+            final int offset,
+            final int length,
+            final int scale,
+            final MutableJsonLong target,
+            final boolean allowExponent) {
         if (length == 0 || scale < 0 || scale > 18)
             return fail(MarketDataParseStatus.INVALID_NUMBER);
         int cursor = offset;
@@ -232,8 +260,38 @@ public final class JsonByteCursor {
         int integerDigits = 0;
         int fractionalDigits = 0;
         boolean decimal = false;
+        int exponent = 0;
+        boolean exponentSeen = false;
         while (cursor < limit) {
             final int character = input.getByte(cursor++) & 0xff;
+            if (character == 'e' || character == 'E') {
+                if (!allowExponent
+                        || exponentSeen
+                        || integerDigits == 0
+                        || (decimal && fractionalDigits == 0)
+                        || cursor == limit) {
+                    return fail(MarketDataParseStatus.INVALID_NUMBER);
+                }
+                exponentSeen = true;
+                boolean negativeExponent = false;
+                int next = input.getByte(cursor) & 0xff;
+                if (next == '+' || next == '-') {
+                    negativeExponent = next == '-';
+                    if (++cursor == limit) return fail(MarketDataParseStatus.INVALID_NUMBER);
+                }
+                int exponentDigits = 0;
+                while (cursor < limit) {
+                    final int exponentDigit = (input.getByte(cursor++) & 0xff) - '0';
+                    if (exponentDigit < 0 || exponentDigit > 9 || exponent > 100) {
+                        return fail(MarketDataParseStatus.INVALID_NUMBER);
+                    }
+                    exponent = exponent * 10 + exponentDigit;
+                    exponentDigits++;
+                }
+                if (exponentDigits == 0) return fail(MarketDataParseStatus.INVALID_NUMBER);
+                if (negativeExponent) exponent = -exponent;
+                break;
+            }
             if (character == '.') {
                 if (decimal || integerDigits == 0 || cursor == limit)
                     return fail(MarketDataParseStatus.INVALID_NUMBER);
@@ -242,17 +300,30 @@ public final class JsonByteCursor {
             }
             final int digit = character - '0';
             if (digit < 0 || digit > 9) return fail(MarketDataParseStatus.INVALID_NUMBER);
-            if (decimal && ++fractionalDigits > scale)
-                return fail(MarketDataParseStatus.INVALID_NUMBER);
+            if (decimal) {
+                fractionalDigits++;
+                if (!allowExponent && fractionalDigits > scale) {
+                    return fail(MarketDataParseStatus.INVALID_NUMBER);
+                }
+            }
             if (!decimal) integerDigits++;
             if (accumulated < multiplyLimit) return fail(MarketDataParseStatus.INVALID_NUMBER);
             accumulated *= 10;
             if (accumulated < lowerLimit + digit) return fail(MarketDataParseStatus.INVALID_NUMBER);
             accumulated -= digit;
         }
-        for (int i = fractionalDigits; i < scale; i++) {
-            if (accumulated < multiplyLimit) return fail(MarketDataParseStatus.INVALID_NUMBER);
-            accumulated *= 10;
+        final int power = scale + exponent - fractionalDigits;
+        if (power > 18 || power < -18) return fail(MarketDataParseStatus.INVALID_NUMBER);
+        if (power >= 0) {
+            for (int i = 0; i < power; i++) {
+                if (accumulated < multiplyLimit) return fail(MarketDataParseStatus.INVALID_NUMBER);
+                accumulated *= 10;
+            }
+        } else {
+            for (int i = 0; i > power; i--) {
+                if (accumulated % 10 != 0) return fail(MarketDataParseStatus.INVALID_NUMBER);
+                accumulated /= 10;
+            }
         }
         target.value(negative ? accumulated : -accumulated);
         return true;
