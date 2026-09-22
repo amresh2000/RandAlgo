@@ -13,5 +13,21 @@
       <groupId>com.penguinsecure.basis</groupId>
       <artifactId>basis-protocol</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.penguinsecure.basis</groupId>
+      <artifactId>basis-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
+      <artifactId>aeron-all</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.agrona</groupId>
+      <artifactId>agrona</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
   </dependencies>
 </project>

@@ -356,6 +356,177 @@ public final class ChildOrderTable {
         return OemsStatus.OK;
     }
 
+    /** Restores one logical child row into an otherwise fresh table. */
+    @SuppressWarnings("ParameterNumber")
+    public OemsStatus restoreSlot(
+            final int slot,
+            final int generation,
+            final long localIdHigh,
+            final long localIdLow,
+            final int groupSlot,
+            final ChildOrderRole role,
+            final int venueId,
+            final int instrumentId,
+            final OrderSide side,
+            final long quantity,
+            final long filledQuantity,
+            final long outstanding,
+            final ChildOrderState state) {
+        if (slot < 0
+                || slot >= states.length
+                || (generations[slot] != 0 && generations[slot] != generation)
+                || generation <= 0
+                || role == null
+                || side == null
+                || quantity <= 0
+                || filledQuantity < 0
+                || filledQuantity > quantity
+                || outstanding < 0
+                || outstanding > quantity - filledQuantity
+                || state == null
+                || state == ChildOrderState.FREE
+                || (find(localIdHigh, localIdLow) >= 0 && find(localIdHigh, localIdLow) != slot)) {
+            return OemsStatus.INVALID_STATE;
+        }
+        final int existingIndex = idIndex(localIdHigh, localIdLow);
+        final int index =
+                existingIndex >= 0 ? existingIndex : emptyIdIndex(localIdHigh, localIdLow);
+        if (index < 0) return OemsStatus.CAPACITY_EXHAUSTED;
+        generations[slot] = generation;
+        idHigh[slot] = localIdHigh;
+        idLow[slot] = localIdLow;
+        groupSlots[slot] = groupSlot;
+        roles[slot] = role;
+        venueIds[slot] = venueId;
+        instrumentIds[slot] = instrumentId;
+        sides[slot] = side;
+        quantities[slot] = quantity;
+        filled[slot] = filledQuantity;
+        possibleOutstanding[slot] = outstanding;
+        states[slot] = terminal(state) ? state : ChildOrderState.UNKNOWN;
+        indexHigh[index] = localIdHigh;
+        indexLow[index] = localIdLow;
+        indexSlots[index] = slot;
+        rebuildFreeList();
+        return OemsStatus.OK;
+    }
+
+    /** Applies a durable FREE after-state while retaining the last slot generation. */
+    public OemsStatus restoreFree(final int slot, final int generation) {
+        if (slot < 0
+                || slot >= states.length
+                || generation <= 0
+                || (generations[slot] != 0 && generations[slot] != generation)) {
+            return OemsStatus.INVALID_STATE;
+        }
+        if (states[slot] != ChildOrderState.FREE) {
+            final int orderIndex = idIndex(idHigh[slot], idLow[slot]);
+            if (orderIndex >= 0) indexSlots[orderIndex] = -2;
+            for (int index = 0; index < executionChildren.length; index++) {
+                if (executionChildren[index] == slot
+                        && executionChildGenerations[index] == generation) {
+                    executionChildren[index] = -2;
+                    executionChildGenerations[index] = 0;
+                }
+            }
+        }
+        generations[slot] = generation;
+        states[slot] = ChildOrderState.FREE;
+        idHigh[slot] = 0;
+        idLow[slot] = 0;
+        groupSlots[slot] = 0;
+        roles[slot] = null;
+        venueIds[slot] = 0;
+        instrumentIds[slot] = 0;
+        sides[slot] = null;
+        quantities[slot] = 0;
+        filled[slot] = 0;
+        possibleOutstanding[slot] = 0;
+        rebuildFreeList();
+        return OemsStatus.OK;
+    }
+
+    /** Restores an execution identity after its child row has been restored. */
+    public OemsStatus restoreExecution(
+            final long identityHash,
+            final long fillQuantity,
+            final long fillPriceTicks,
+            final int childSlot,
+            final int childGeneration) {
+        if (identityHash == 0
+                || fillQuantity <= 0
+                || fillPriceTicks <= 0
+                || !valid(childSlot, childGeneration)) return OemsStatus.INVALID_STATE;
+        final int existing = findExecution(identityHash);
+        if (existing >= 0) {
+            return executionChildren[existing] == childSlot
+                            && executionChildGenerations[existing] == childGeneration
+                            && executionQuantities[existing] == fillQuantity
+                            && executionPrices[existing] == fillPriceTicks
+                    ? OemsStatus.DUPLICATE
+                    : OemsStatus.CONFLICT;
+        }
+        final int index = emptyExecutionIndex(identityHash);
+        if (index < 0) return OemsStatus.CAPACITY_EXHAUSTED;
+        executionHashes[index] = identityHash;
+        executionQuantities[index] = fillQuantity;
+        executionPrices[index] = fillPriceTicks;
+        executionChildren[index] = childSlot;
+        executionChildGenerations[index] = childGeneration;
+        return OemsStatus.OK;
+    }
+
+    public int executionCapacity() {
+        return executionChildren.length / 2;
+    }
+
+    public int executionEntryCount() {
+        int count = 0;
+        for (int child : executionChildren) if (child >= 0) count++;
+        return count;
+    }
+
+    public void visitExecutions(final ExecutionVisitor visitor) {
+        if (visitor == null) throw new IllegalArgumentException("visitor required");
+        for (int index = 0; index < executionChildren.length; index++) {
+            if (executionChildren[index] >= 0) {
+                visitor.onExecution(
+                        executionHashes[index],
+                        executionQuantities[index],
+                        executionPrices[index],
+                        executionChildren[index],
+                        executionChildGenerations[index]);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    public interface ExecutionVisitor {
+        void onExecution(
+                long identityHash,
+                long quantity,
+                long priceTicks,
+                int childSlot,
+                int childGeneration);
+    }
+
+    private void rebuildFreeList() {
+        freeHead = -1;
+        for (int slot = states.length - 1; slot >= 0; slot--) {
+            if (states[slot] == ChildOrderState.FREE) {
+                nextFree[slot] = freeHead;
+                freeHead = slot;
+            }
+        }
+    }
+
+    private static boolean terminal(final ChildOrderState state) {
+        return state == ChildOrderState.FILLED
+                || state == ChildOrderState.CANCELLED
+                || state == ChildOrderState.REJECTED
+                || state == ChildOrderState.FAULTED;
+    }
+
     private OemsStatus transition(
             final int slot,
             final int generation,

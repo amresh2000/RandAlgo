@@ -52,6 +52,16 @@ public final class KillHierarchy {
         return generations[scope.code()][scopeId];
     }
 
+    /** Restores one monotonic kill cell into a fresh hierarchy. */
+    public KillUpdateStatus restore(
+            final KillScope scope, final int scopeId, final long generation, final boolean killed) {
+        return killed ? kill(scope, scopeId, generation) : reset(scope, scopeId, generation);
+    }
+
+    public int maximumScopeId() {
+        return killed[0].length - 1;
+    }
+
     private boolean valid(final KillScope scope, final int scopeId, final long generation) {
         return scope != null
                 && scopeId >= 0

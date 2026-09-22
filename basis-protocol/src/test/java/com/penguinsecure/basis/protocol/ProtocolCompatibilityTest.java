@@ -26,7 +26,7 @@ final class ProtocolCompatibilityTest {
     void currentEncodingMatchesGoldenFrame() throws IOException {
         byte[] encoded = encodeCurrent();
 
-        assertEquals(golden("/sbe/v1/instrument-definition.hex"), HEX.formatHex(encoded));
+        assertEquals(golden("/sbe/v2/instrument-definition.hex"), HEX.formatHex(encoded));
 
         InstrumentDefinitionDecoder decoder = decode(encoded);
         assertEquals(ProductFamily.INVERSE_PERPETUAL, decoder.productFamily());
@@ -54,6 +54,15 @@ final class ProtocolCompatibilityTest {
         assertEquals(
                 InstrumentDefinitionDecoder.multiplierScaleNullValue(), decoder.multiplierScale());
         assertEquals(InstrumentDefinitionDecoder.feeSourceIdNullValue(), decoder.feeSourceId());
+    }
+
+    @Test
+    void currentDecoderReadsVersionOneFrame() throws IOException {
+        byte[] previous = encodeCurrent();
+        new UnsafeBuffer(previous).putShort(6, (short) 1, ByteOrder.LITTLE_ENDIAN);
+
+        assertEquals(golden("/sbe/v1/instrument-definition.hex"), HEX.formatHex(previous));
+        assertEquals(1, decode(previous).actingVersion());
     }
 
     private static byte[] encodeCurrent() {

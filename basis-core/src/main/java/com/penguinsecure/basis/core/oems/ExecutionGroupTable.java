@@ -228,6 +228,97 @@ public final class ExecutionGroupTable {
         return OemsStatus.OK;
     }
 
+    /** Restores one logical group into a fresh table; nonterminal groups become UNKNOWN. */
+    @SuppressWarnings("ParameterNumber")
+    public OemsStatus restoreSlot(
+            final int slot,
+            final int generation,
+            final int strategyId,
+            final long configurationGeneration,
+            final int reservationSlot,
+            final int reservationGeneration,
+            final long initiationTarget,
+            final long hedgeTarget,
+            final long initiationFilled,
+            final long hedgeRequested,
+            final long hedgeFilled,
+            final long maximumImbalance,
+            final ExecutionGroupState state) {
+        if (slot < 0
+                || slot >= states.length
+                || (generations[slot] != 0 && generations[slot] != generation)
+                || generation <= 0
+                || strategyId <= 0
+                || configurationGeneration <= 0
+                || reservationSlot < 0
+                || reservationGeneration <= 0
+                || initiationTarget <= 0
+                || hedgeTarget <= 0
+                || initiationFilled < 0
+                || initiationFilled > initiationTarget
+                || hedgeRequested < 0
+                || hedgeRequested > hedgeTarget
+                || hedgeFilled < 0
+                || hedgeFilled > hedgeRequested
+                || maximumImbalance <= 0
+                || state == null
+                || state == ExecutionGroupState.FREE) return OemsStatus.INVALID_STATE;
+        generations[slot] = generation;
+        strategyIds[slot] = strategyId;
+        configurationGenerations[slot] = configurationGeneration;
+        reservationSlots[slot] = reservationSlot;
+        reservationGenerations[slot] = reservationGeneration;
+        initiationTargets[slot] = initiationTarget;
+        hedgeTargets[slot] = hedgeTarget;
+        this.initiationFilled[slot] = initiationFilled;
+        this.hedgeRequested[slot] = hedgeRequested;
+        this.hedgeFilled[slot] = hedgeFilled;
+        maximumImbalances[slot] = maximumImbalance;
+        deadlines[slot] = 0;
+        states[slot] = terminal(state) ? state : ExecutionGroupState.UNKNOWN;
+        rebuildFreeList();
+        return OemsStatus.OK;
+    }
+
+    /** Applies a durable FREE after-state while retaining the last slot generation. */
+    public OemsStatus restoreFree(final int slot, final int generation) {
+        if (slot < 0
+                || slot >= states.length
+                || generation <= 0
+                || (generations[slot] != 0 && generations[slot] != generation)) {
+            return OemsStatus.INVALID_STATE;
+        }
+        generations[slot] = generation;
+        states[slot] = ExecutionGroupState.FREE;
+        strategyIds[slot] = 0;
+        configurationGenerations[slot] = 0;
+        reservationSlots[slot] = 0;
+        reservationGenerations[slot] = 0;
+        initiationTargets[slot] = 0;
+        hedgeTargets[slot] = 0;
+        initiationFilled[slot] = 0;
+        hedgeRequested[slot] = 0;
+        hedgeFilled[slot] = 0;
+        maximumImbalances[slot] = 0;
+        deadlines[slot] = 0;
+        rebuildFreeList();
+        return OemsStatus.OK;
+    }
+
+    private void rebuildFreeList() {
+        freeHead = -1;
+        for (int slot = states.length - 1; slot >= 0; slot--) {
+            if (states[slot] == ExecutionGroupState.FREE) {
+                nextFree[slot] = freeHead;
+                freeHead = slot;
+            }
+        }
+    }
+
+    private static boolean terminal(final ExecutionGroupState state) {
+        return state == ExecutionGroupState.COMPLETE || state == ExecutionGroupState.FAILED;
+    }
+
     private OemsStatus transition(
             final int slot,
             final int generation,
