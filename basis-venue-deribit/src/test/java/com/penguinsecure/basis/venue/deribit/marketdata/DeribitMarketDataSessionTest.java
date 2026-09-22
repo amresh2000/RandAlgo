@@ -17,6 +17,46 @@ import org.junit.jupiter.api.Test;
 @Tag("unit")
 final class DeribitMarketDataSessionTest {
     @Test
+    void subscribesToStandardPublicFeedWithoutAuthentication() {
+        ManualClock clock = new ManualClock();
+        FakeConnection connection = new FakeConnection();
+        DeribitMarketDataSession session =
+                new DeribitMarketDataSession(
+                        "BTC-PERPETUAL",
+                        "100ms",
+                        connection,
+                        new LaneHealthWord(),
+                        clock,
+                        new ReconnectPolicy(5, 100, 4, 0),
+                        8,
+                        100);
+
+        session.start();
+        session.onTransportReady();
+
+        assertEquals(VenueSessionState.SUBSCRIBING, session.state());
+        assertTrue(connection.sent.get(0).contains("set_heartbeat"));
+        assertTrue(connection.sent.get(1).contains("book.BTC-PERPETUAL.none.20.100ms"));
+    }
+
+    @Test
+    void rejectsUnauthenticatedRawFeed() {
+        ManualClock clock = new ManualClock();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new DeribitMarketDataSession(
+                                "BTC-PERPETUAL",
+                                "raw",
+                                new FakeConnection(),
+                                new LaneHealthWord(),
+                                clock,
+                                new ReconnectPolicy(5, 100, 4, 0),
+                                8,
+                                100));
+    }
+
+    @Test
     void authenticatesSubscribesRespondsToTestAndRefreshesWithoutExposingToken() {
         ManualClock clock = new ManualClock();
         FakeConnection connection = new FakeConnection();

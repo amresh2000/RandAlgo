@@ -12,7 +12,7 @@ import com.penguinsecure.basis.venue.api.session.VenueConnectionControl;
 import com.penguinsecure.basis.venue.api.session.VenueFailureReason;
 import com.penguinsecure.basis.venue.api.session.VenueSessionState;
 
-/** Deribit authentication/token/heartbeat/subscription/reconnect coordinator. */
+/** Deribit public-book heartbeat/subscription/reconnect coordinator. */
 public final class DeribitMarketDataSession implements MarketDataSource, DeribitSessionListener {
     private static final String TEST_RESPONSE =
             "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"public/test\",\"params\":{}}";
@@ -33,6 +33,30 @@ public final class DeribitMarketDataSession implements MarketDataSource, Deribit
     private long reconnectAtNanos;
     private int reconnectAttempt;
 
+    /** Creates an unauthenticated session for the public {@code 100ms} or {@code agg2} feed. */
+    public DeribitMarketDataSession(
+            final String instrument,
+            final String interval,
+            final VenueConnectionControl connection,
+            final LaneHealthWord healthWord,
+            final MonotonicClock clock,
+            final ReconnectPolicy reconnectPolicy,
+            final long producerEpoch,
+            final long activityTimeoutNanos) {
+        this(
+                instrument,
+                interval,
+                connection,
+                null,
+                healthWord,
+                null,
+                clock,
+                reconnectPolicy,
+                producerEpoch,
+                activityTimeoutNanos);
+    }
+
+    /** Creates an authenticated session, required for Deribit's {@code raw} public feed. */
     public DeribitMarketDataSession(
             final String instrument,
             final String interval,
@@ -50,13 +74,14 @@ public final class DeribitMarketDataSession implements MarketDataSource, Deribit
                         || "agg2".equals(interval))) {
             throw new IllegalArgumentException("invalid instrument or interval");
         }
-        if (connection == null
-                || authentication == null
-                || healthWord == null
-                || epochClock == null
-                || clock == null
-                || reconnectPolicy == null)
+        if (connection == null || healthWord == null || clock == null || reconnectPolicy == null)
             throw new NullPointerException("dependencies are required");
+        if ("raw".equals(interval) && authentication == null) {
+            throw new IllegalArgumentException("raw interval requires authentication");
+        }
+        if (authentication != null && epochClock == null) {
+            throw new NullPointerException("authenticated sessions require an epoch clock");
+        }
         if (activityTimeoutNanos <= 0)
             throw new IllegalArgumentException("activity timeout must be positive");
         this.connection = connection;
@@ -85,13 +110,22 @@ public final class DeribitMarketDataSession implements MarketDataSource, Deribit
     @Override
     public void onTransportReady() {
         lifecycle.transitionTo(VenueSessionState.TLS);
-        lifecycle.transitionTo(VenueSessionState.AUTHENTICATING);
-        authentication.authenticate(connection);
+        if (authentication == null) {
+            subscribe();
+        } else {
+            lifecycle.transitionTo(VenueSessionState.AUTHENTICATING);
+            authentication.authenticate(connection);
+        }
     }
 
     @Override
     public void onAuthenticated() {
+        if (authentication == null) return;
         if (lifecycle.state() != VenueSessionState.AUTHENTICATING) return;
+        subscribe();
+    }
+
+    private void subscribe() {
         lifecycle.transitionTo(VenueSessionState.SUBSCRIBING);
         connection.sendText(HEARTBEAT);
         connection.sendText(subscription);
@@ -129,7 +163,7 @@ public final class DeribitMarketDataSession implements MarketDataSource, Deribit
                 fail(VenueFailureReason.HEARTBEAT_TIMEOUT, now);
                 return 1;
             }
-            if (authentication.refreshRequired(epochClock.epochNanos())) {
+            if (authentication != null && authentication.refreshRequired(epochClock.epochNanos())) {
                 authentication.refresh(connection);
                 return 1;
             }

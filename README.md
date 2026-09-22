@@ -25,6 +25,27 @@ from normal verification and requires an NVD API key:
 NVD_API_KEY=... ./mvnw -Pnvd-audit verify
 ```
 
+## Public market-data latency runner
+
+Build and run the observation-only Bybit and Deribit public-feed path:
+
+```bash
+./mvnw -pl basis-app -am package
+java -jar basis-app/target/basis-market-data.jar \
+  --venue=both \
+  --duration-seconds=60 \
+  --report-seconds=5
+```
+
+No account or credentials are required. The runner subscribes to Bybit inverse
+`orderbook.50.BTCUSD` and Deribit bounded
+`book.BTC-PERPETUAL.none.20.100ms`, normalizes events, publishes and drains the
+production SPSC lanes, applies the production fixed-depth books, and reports
+stage percentiles. `--duration-seconds=0` runs until interrupted.
+
+Run it on a time-synchronized host. Local monotonic stage timings remain valid
+without wall-clock synchronization, but `venue->receive` does not.
+
 ## Golden sources
 
 - [Architecture](docs/architecture.md) - accepted system boundaries and design decisions.

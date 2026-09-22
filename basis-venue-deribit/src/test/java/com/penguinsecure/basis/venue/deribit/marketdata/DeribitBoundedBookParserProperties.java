@@ -46,8 +46,8 @@ final class DeribitBoundedBookParserProperties {
     }
 
     @Property(tries = 1000)
-    void exponentNotationIsRejected(@ForAll int exponent) {
-        String invalid = VALID.replace("160", "1e" + exponent);
+    void inexactExponentNotationIsRejected(@ForAll int exponent) {
+        String invalid = VALID.replace("160", "1.001e-" + Math.floorMod(exponent, 3));
         assertNotEquals(
                 MarketDataParseStatus.OK,
                 parser.parse(

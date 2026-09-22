@@ -32,6 +32,23 @@ Validate the local frame codec before a run:
 python3 -m unittest discover -s tools/tests -v
 ```
 
+Exercise and measure the production Java receive/decode/lane/book path without
+credentials or order-entry capability:
+
+```bash
+./mvnw -pl basis-app -am package
+java -jar basis-app/target/basis-market-data.jar \
+  --venue=both \
+  --duration-seconds=300 \
+  --report-seconds=10
+```
+
+The Java runner reports venue timestamp to local receive time, receive to
+decode, publication to dequeue, receive to book completion, and book-apply
+time. Treat venue-to-receive measurements as invalid unless the host wall clock
+is independently verified as synchronized. The runner is observation-only and
+does not load credentials, private channels, or order-entry components.
+
 Generate the same-clock cadence/skew report:
 
 ```bash
