@@ -132,6 +132,45 @@ public final class PartitionedTokenBucket {
         return reservedHedgeTokens;
     }
 
+    public long capacity(final RatePartition partition) {
+        return partition == null ? 0 : capacities[partition.ordinal()];
+    }
+
+    public long tokensWithoutRefill(final RatePartition partition) {
+        return partition == null ? 0 : tokens[partition.ordinal()];
+    }
+
+    public long refillTokens(final RatePartition partition) {
+        return partition == null ? 0 : refillTokens[partition.ordinal()];
+    }
+
+    public long refillIntervalNanos() {
+        return refillIntervalNanos;
+    }
+
+    /** Restores claims only when they fit the freshly configured bucket. */
+    public void restoreConservatively(
+            final long normalTokens,
+            final long hedgeTokens,
+            final long emergencyTokens,
+            final long reservedHedgeTokens) {
+        if (normalTokens < 0
+                || normalTokens > capacities[RatePartition.NORMAL.ordinal()]
+                || hedgeTokens < 0
+                || hedgeTokens > capacities[RatePartition.HEDGE.ordinal()]
+                || emergencyTokens < 0
+                || emergencyTokens > capacities[RatePartition.EMERGENCY.ordinal()]
+                || reservedHedgeTokens < 0
+                || reservedHedgeTokens > hedgeTokens) {
+            throw new IllegalArgumentException("restored token state does not match configuration");
+        }
+        tokens[RatePartition.NORMAL.ordinal()] = normalTokens;
+        tokens[RatePartition.HEDGE.ordinal()] = hedgeTokens;
+        tokens[RatePartition.EMERGENCY.ordinal()] = emergencyTokens;
+        this.reservedHedgeTokens = reservedHedgeTokens;
+        known = false;
+    }
+
     private long availableHedgeTokens() {
         return tokens[RatePartition.HEDGE.ordinal()] - reservedHedgeTokens;
     }

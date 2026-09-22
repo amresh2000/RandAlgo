@@ -230,6 +230,81 @@ public final class RiskReservationTable {
         return valid(slot, generation) ? expiryMonoNanos[slot] : 0;
     }
 
+    public PartitionedTokenBucket rateBucket(final int slot, final int generation) {
+        return valid(slot, generation) ? rateBuckets[slot] : null;
+    }
+
+    /** Restores one reservation and rebinds it to a freshly configured rate bucket. */
+    @SuppressWarnings("ParameterNumber")
+    public RiskReservationStatus restoreSlot(
+            final int slot,
+            final int generation,
+            final int strategySlot,
+            final long configurationGeneration,
+            final long remainingGross,
+            final long reservedNetExposure,
+            final long reservedUnhedgedExposure,
+            final long collateral,
+            final long remainingHedgeClaims,
+            final RiskReservationState state,
+            final PartitionedTokenBucket bucket) {
+        if (slot < 0
+                || slot >= states.length
+                || (generations[slot] != 0 && generations[slot] != generation)
+                || generation <= 0
+                || !ledger.matchesGeneration(strategySlot, configurationGeneration)
+                || remainingGross < 0
+                || reservedUnhedgedExposure < 0
+                || collateral < 0
+                || remainingHedgeClaims < 0
+                || state == null
+                || state == RiskReservationState.FREE
+                || bucket == null
+                || bucket.reservedHedgeTokens() < remainingHedgeClaims) {
+            return RiskReservationStatus.INVALID_STATE;
+        }
+        generations[slot] = generation;
+        strategySlots[slot] = strategySlot;
+        configurationGenerations[slot] = configurationGeneration;
+        this.remainingGross[slot] = remainingGross;
+        this.reservedNetExposure[slot] = reservedNetExposure;
+        this.reservedUnhedgedExposure[slot] = reservedUnhedgedExposure;
+        this.collateral[slot] = collateral;
+        this.remainingHedgeClaims[slot] = remainingHedgeClaims;
+        expiryMonoNanos[slot] = 0;
+        states[slot] = RiskReservationState.UNKNOWN;
+        rateBuckets[slot] = bucket;
+        rebuildFreeList();
+        return RiskReservationStatus.OK;
+    }
+
+    /** Applies a durable FREE after-state without repeating ledger or bucket side effects. */
+    public RiskReservationStatus restoreFree(final int slot, final int generation) {
+        if (slot < 0
+                || slot >= states.length
+                || generation <= 0
+                || (generations[slot] != 0 && generations[slot] != generation)) {
+            return RiskReservationStatus.INVALID_STATE;
+        }
+        generations[slot] = generation;
+        if (states[slot] != RiskReservationState.FREE) {
+            free(slot);
+        } else {
+            rebuildFreeList();
+        }
+        return RiskReservationStatus.OK;
+    }
+
+    private void rebuildFreeList() {
+        freeHead = -1;
+        for (int slot = states.length - 1; slot >= 0; slot--) {
+            if (states[slot] == RiskReservationState.FREE) {
+                nextFree[slot] = freeHead;
+                freeHead = slot;
+            }
+        }
+    }
+
     private boolean valid(final int slot, final int generation) {
         return slot >= 0
                 && slot < states.length

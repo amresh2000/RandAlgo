@@ -211,6 +211,52 @@ public final class StrategyRiskLedger {
         return configurationGenerations[slot];
     }
 
+    /** Restores one logical row into a fresh ledger. Internal layout is never serialized. */
+    @SuppressWarnings("ParameterNumber")
+    public void restoreSlot(
+            final int slot,
+            final int strategyId,
+            final long configurationGeneration,
+            final long confirmedGross,
+            final long pendingGross,
+            final long netExposure,
+            final long pendingNetExposure,
+            final long pendingUnhedgedExposure,
+            final long position,
+            final long reservedCollateral,
+            final long dailyLoss,
+            final int activeGroups,
+            final int unknownGroups) {
+        requireSlot(slot);
+        if ((this.strategyIds[slot] != 0
+                        && (this.strategyIds[slot] != strategyId
+                                || this.configurationGenerations[slot] != configurationGeneration))
+                || strategyId <= 0
+                || configurationGeneration <= 0
+                || confirmedGross < 0
+                || pendingGross < 0
+                || pendingUnhedgedExposure < 0
+                || reservedCollateral < 0
+                || dailyLoss < 0
+                || activeGroups < 0
+                || unknownGroups < 0
+                || unknownGroups > activeGroups) {
+            throw new IllegalArgumentException("invalid recovered ledger row");
+        }
+        this.strategyIds[slot] = strategyId;
+        this.configurationGenerations[slot] = configurationGeneration;
+        this.confirmedGross[slot] = confirmedGross;
+        this.pendingGross[slot] = pendingGross;
+        this.netExposure[slot] = netExposure;
+        this.pendingNetExposure[slot] = pendingNetExposure;
+        this.pendingUnhedgedExposure[slot] = pendingUnhedgedExposure;
+        this.position[slot] = position;
+        this.reservedCollateral[slot] = reservedCollateral;
+        this.dailyLoss[slot] = dailyLoss;
+        this.activeGroups[slot] = activeGroups;
+        this.unknownGroups[slot] = unknownGroups;
+    }
+
     private void requireSlot(final int slot) {
         if (!validSlot(slot)) throw new IllegalArgumentException("invalid strategy slot");
     }

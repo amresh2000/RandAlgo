@@ -2,8 +2,8 @@
 <sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
   package="com.penguinsecure.basis.protocol.sbe"
   id="1001"
-  version="1"
-  semanticVersion="1.0.0"
+  version="2"
+  semanticVersion="2.0.0"
   description="Basis OMS durable and process-boundary protocol"
   byteOrder="littleEndian">
 
@@ -37,6 +37,10 @@
       <validValue name="OPERATOR_CONTROL">13</validValue>
       <validValue name="SNAPSHOT_MARKER">14</validValue>
       <validValue name="RECONCILIATION_RESULT">15</validValue>
+      <validValue name="RISK_RESERVATION">16</validValue>
+      <validValue name="ORDER_FACT">17</validValue>
+      <validValue name="KILL_STATE">18</validValue>
+      <validValue name="JOURNAL_FAULT">19</validValue>
     </enum>
 
     <enum name="Venue" encodingType="uint8">
@@ -145,6 +149,28 @@
       <validValue name="DIFFERENCE">1</validValue>
       <validValue name="INCOMPLETE">2</validValue>
       <validValue name="FAILED">3</validValue>
+    </enum>
+
+    <enum name="FactProvenance" encodingType="uint8">
+      <validValue name="SIMULATED">1</validValue>
+      <validValue name="COUNTERFACTUAL">2</validValue>
+      <validValue name="ACTUAL">3</validValue>
+    </enum>
+
+    <enum name="ReservationLifecycle" encodingType="uint8">
+      <validValue name="FREE">0</validValue>
+      <validValue name="RESERVED">1</validValue>
+      <validValue name="ACTIVE">2</validValue>
+      <validValue name="UNKNOWN">3</validValue>
+      <validValue name="RECONCILING">4</validValue>
+    </enum>
+
+    <enum name="KillScope" encodingType="uint8">
+      <validValue name="GLOBAL">0</validValue>
+      <validValue name="VENUE">1</validValue>
+      <validValue name="ACCOUNT">2</validValue>
+      <validValue name="STRATEGY">3</validValue>
+      <validValue name="INSTRUMENT">4</validValue>
     </enum>
 
     <composite name="EventHeader" description="Common evidence envelope">
@@ -298,6 +324,15 @@
     <field name="hedgedQuantity" id="6" type="int64" />
     <field name="maximumImbalance" id="7" type="int64" />
     <field name="stateCode" id="8" type="uint16" />
+    <field name="groupSlot" id="9" type="uint32" sinceVersion="2" />
+    <field name="groupGeneration" id="10" type="uint32" sinceVersion="2" />
+    <field name="strategySlot" id="11" type="uint32" sinceVersion="2" />
+    <field name="configurationGeneration" id="12" type="uint64" sinceVersion="2" />
+    <field name="reservationSlot" id="13" type="uint32" sinceVersion="2" />
+    <field name="reservationGeneration" id="14" type="uint32" sinceVersion="2" />
+    <field name="initiationTarget" id="15" type="int64" sinceVersion="2" />
+    <field name="hedgeTarget" id="16" type="int64" sinceVersion="2" />
+    <field name="hedgeRequested" id="17" type="int64" sinceVersion="2" />
   </sbe:message>
 
   <sbe:message name="OrderCommand" id="8" description="Bounded order-agent command">
@@ -324,6 +359,12 @@
     <field name="originalQuantityLots" id="7" type="int64" />
     <field name="filledQuantityLots" id="8" type="int64" />
     <field name="remainingQuantityLots" id="9" type="int64" />
+    <field name="childSlot" id="10" type="uint32" sinceVersion="2" />
+    <field name="childGeneration" id="11" type="uint32" sinceVersion="2" />
+    <field name="groupSlot" id="12" type="uint32" sinceVersion="2" />
+    <field name="roleCode" id="13" type="uint16" sinceVersion="2" />
+    <field name="possibleOutstanding" id="14" type="int64" sinceVersion="2" />
+    <field name="side" id="15" type="OrderSide" sinceVersion="2" />
   </sbe:message>
 
   <sbe:message name="Fill" id="10" description="Deduplicated fill increment">
@@ -347,6 +388,16 @@
     <field name="averagePriceTicks" id="4" type="int64" />
     <field name="realizedPnl" id="5" type="int64" />
     <field name="unrealizedPnl" id="6" type="int64" />
+    <field name="strategySlot" id="7" type="uint32" sinceVersion="2" />
+    <field name="confirmedGross" id="8" type="int64" sinceVersion="2" />
+    <field name="pendingGross" id="9" type="int64" sinceVersion="2" />
+    <field name="netExposure" id="10" type="int64" sinceVersion="2" />
+    <field name="pendingNetExposure" id="11" type="int64" sinceVersion="2" />
+    <field name="pendingUnhedgedExposure" id="12" type="int64" sinceVersion="2" />
+    <field name="reservedCollateral" id="13" type="int64" sinceVersion="2" />
+    <field name="dailyLoss" id="14" type="int64" sinceVersion="2" />
+    <field name="activeGroups" id="15" type="uint32" sinceVersion="2" />
+    <field name="unknownGroups" id="16" type="uint32" sinceVersion="2" />
   </sbe:message>
 
   <sbe:message name="Health" id="12" description="Component and path health fact">
@@ -383,5 +434,54 @@
     <field name="positionDifference" id="5" type="int64" />
     <field name="balanceDifference" id="6" type="int64" />
     <field name="reconciledThroughEpochNanos" id="7" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="RiskReservationState" id="16" description="Full-after-state risk reservation fact">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="reservationSlot" id="2" type="uint32" />
+    <field name="reservationGeneration" id="3" type="uint32" />
+    <field name="strategySlot" id="4" type="uint32" />
+    <field name="lifecycle" id="5" type="ReservationLifecycle" />
+    <field name="remainingGross" id="6" type="int64" />
+    <field name="reservedNetExposure" id="7" type="int64" />
+    <field name="reservedUnhedgedExposure" id="8" type="int64" />
+    <field name="collateral" id="9" type="int64" />
+    <field name="remainingHedgeClaims" id="10" type="int64" />
+    <field name="remainingTtlNanos" id="11" type="uint64" />
+    <field name="configurationGeneration" id="12" type="uint64" />
+    <field name="normalTokens" id="13" type="int64" />
+    <field name="hedgeTokens" id="14" type="int64" />
+    <field name="emergencyTokens" id="15" type="int64" />
+    <field name="reservedHedgeTokens" id="16" type="int64" />
+  </sbe:message>
+
+  <sbe:message name="OrderFact" id="17" description="Normalized write, lifecycle, fill, or reconciliation fact">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="provenance" id="2" type="FactProvenance" />
+    <field name="factTypeCode" id="3" type="uint16" />
+    <field name="localOrderIdHigh" id="4" type="uint64" />
+    <field name="localOrderIdLow" id="5" type="uint64" />
+    <field name="executionIdentityHash" id="6" type="uint64" />
+    <field name="fillQuantity" id="7" type="int64" />
+    <field name="fillPriceTicks" id="8" type="int64" />
+    <field name="authoritativeFilled" id="9" type="int64" />
+    <field name="authoritativeStateCode" id="10" type="uint16" />
+  </sbe:message>
+
+  <sbe:message name="KillState" id="18" description="Monotonic scoped kill state">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="scopeType" id="2" type="KillScope" />
+    <field name="scopeId" id="3" type="uint32" />
+    <field name="generation" id="4" type="uint64" />
+    <field name="killed" id="5" type="uint8" />
+  </sbe:message>
+
+  <sbe:message name="JournalFault" id="19" description="Durable journal health transition">
+    <field name="eventHeader" id="1" type="EventHeader" />
+    <field name="stateCode" id="2" type="uint16" />
+    <field name="publicationResult" id="3" type="int64" />
+    <field name="ingressBytes" id="4" type="uint32" />
+    <field name="archiveLagBytes" id="5" type="uint64" />
+    <field name="diskUsableBytes" id="6" type="uint64" />
   </sbe:message>
 </sbe:messageSchema>
