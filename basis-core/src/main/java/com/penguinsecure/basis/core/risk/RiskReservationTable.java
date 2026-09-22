@@ -194,6 +194,42 @@ public final class RiskReservationTable {
         return valid(slot, generation) ? remainingHedgeClaims[slot] : 0;
     }
 
+    public int capacity() {
+        return states.length;
+    }
+
+    public int generationAt(final int slot) {
+        return slot >= 0 && slot < states.length ? generations[slot] : 0;
+    }
+
+    public RiskReservationState stateAt(final int slot) {
+        return slot >= 0 && slot < states.length ? states[slot] : RiskReservationState.FREE;
+    }
+
+    public int strategySlot(final int slot, final int generation) {
+        return valid(slot, generation) ? strategySlots[slot] : -1;
+    }
+
+    public long configurationGeneration(final int slot, final int generation) {
+        return valid(slot, generation) ? configurationGenerations[slot] : 0;
+    }
+
+    public long reservedNetExposure(final int slot, final int generation) {
+        return valid(slot, generation) ? reservedNetExposure[slot] : 0;
+    }
+
+    public long reservedUnhedgedExposure(final int slot, final int generation) {
+        return valid(slot, generation) ? reservedUnhedgedExposure[slot] : 0;
+    }
+
+    public long collateral(final int slot, final int generation) {
+        return valid(slot, generation) ? collateral[slot] : 0;
+    }
+
+    public long expiryMonoNanos(final int slot, final int generation) {
+        return valid(slot, generation) ? expiryMonoNanos[slot] : 0;
+    }
+
     private boolean valid(final int slot, final int generation) {
         return slot >= 0
                 && slot < states.length

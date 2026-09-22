@@ -119,10 +119,23 @@ public final class ChildOrderTable {
         return OemsStatus.OK;
     }
 
+    public OemsStatus writeFailed(final int slot, final int generation) {
+        if (!valid(slot, generation)) return OemsStatus.STALE_HANDLE;
+        if (states[slot] == ChildOrderState.REJECTED) return OemsStatus.DUPLICATE;
+        if (states[slot] != ChildOrderState.SEND_PENDING) return OemsStatus.INVALID_STATE;
+        states[slot] = ChildOrderState.REJECTED;
+        possibleOutstanding[slot] = 0;
+        return OemsStatus.OK;
+    }
+
     public OemsStatus acknowledge(final int slot, final int generation) {
         if (!valid(slot, generation)) return OemsStatus.STALE_HANDLE;
         if (states[slot] == ChildOrderState.ACKNOWLEDGED
-                || states[slot] == ChildOrderState.WORKING) {
+                || states[slot] == ChildOrderState.WORKING
+                || states[slot] == ChildOrderState.PARTIALLY_FILLED
+                || states[slot] == ChildOrderState.FILLED
+                || states[slot] == ChildOrderState.CANCEL_PENDING
+                || states[slot] == ChildOrderState.CANCELLED) {
             return OemsStatus.DUPLICATE;
         }
         if (states[slot] != ChildOrderState.SENT) return OemsStatus.INVALID_STATE;
@@ -131,7 +144,15 @@ public final class ChildOrderTable {
     }
 
     public OemsStatus markWorking(final int slot, final int generation) {
-        return transition(slot, generation, ChildOrderState.ACKNOWLEDGED, ChildOrderState.WORKING);
+        if (!valid(slot, generation)) return OemsStatus.STALE_HANDLE;
+        if (states[slot] == ChildOrderState.WORKING
+                || states[slot] == ChildOrderState.PARTIALLY_FILLED
+                || states[slot] == ChildOrderState.FILLED
+                || states[slot] == ChildOrderState.CANCEL_PENDING
+                || states[slot] == ChildOrderState.CANCELLED) return OemsStatus.DUPLICATE;
+        if (states[slot] != ChildOrderState.ACKNOWLEDGED) return OemsStatus.INVALID_STATE;
+        states[slot] = ChildOrderState.WORKING;
+        return OemsStatus.OK;
     }
 
     public OemsStatus requestCancel(final int slot, final int generation) {
@@ -260,6 +281,46 @@ public final class ChildOrderTable {
 
     public long localOrderIdLow(final int slot, final int generation) {
         return valid(slot, generation) ? idLow[slot] : 0;
+    }
+
+    public OemsStatus resolve(
+            final long localIdHigh, final long localIdLow, final MutableSlotHandle destination) {
+        if (destination == null) return OemsStatus.INVALID_STATE;
+        final int slot = find(localIdHigh, localIdLow);
+        if (slot < 0 || states[slot] == ChildOrderState.FREE) {
+            destination.clear();
+            return OemsStatus.STALE_HANDLE;
+        }
+        destination.set(slot, generations[slot]);
+        return OemsStatus.OK;
+    }
+
+    public int capacity() {
+        return states.length;
+    }
+
+    public int generationAt(final int slot) {
+        return slot >= 0 && slot < states.length ? generations[slot] : 0;
+    }
+
+    public ChildOrderState stateAt(final int slot) {
+        return slot >= 0 && slot < states.length ? states[slot] : ChildOrderState.FREE;
+    }
+
+    public int venueId(final int slot, final int generation) {
+        return valid(slot, generation) ? venueIds[slot] : 0;
+    }
+
+    public int instrumentId(final int slot, final int generation) {
+        return valid(slot, generation) ? instrumentIds[slot] : 0;
+    }
+
+    public OrderSide side(final int slot, final int generation) {
+        return valid(slot, generation) ? sides[slot] : null;
+    }
+
+    public long quantity(final int slot, final int generation) {
+        return valid(slot, generation) ? quantities[slot] : 0;
     }
 
     public OemsStatus abandonCreated(final int slot, final int generation) {

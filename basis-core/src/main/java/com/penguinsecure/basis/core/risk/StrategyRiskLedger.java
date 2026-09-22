@@ -197,6 +197,20 @@ public final class StrategyRiskLedger {
         return unknownGroups[slot];
     }
 
+    public int capacity() {
+        return strategyIds.length;
+    }
+
+    public int strategyId(final int slot) {
+        requireSlot(slot);
+        return strategyIds[slot];
+    }
+
+    public long configurationGeneration(final int slot) {
+        requireSlot(slot);
+        return configurationGenerations[slot];
+    }
+
     private void requireSlot(final int slot) {
         if (!validSlot(slot)) throw new IllegalArgumentException("invalid strategy slot");
     }
