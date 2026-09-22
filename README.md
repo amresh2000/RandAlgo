@@ -3,9 +3,27 @@
 Greenfield Java trading platform for onboarding and operating low-latency
 cross-venue basis strategies between Bybit and Deribit.
 
-The repository is currently in the architecture and implementation-planning
-stage. No production implementation is implied by the presence of these
-documents.
+The repository is in phased implementation. Phase 0 records feasibility
+evidence and Phase 1 establishes the reproducible engineering foundation; no
+production trading capability is implied by the build scaffolding.
+
+## Build
+
+Java 25 is required. Maven itself is pinned by the wrapper, so the canonical
+clean-checkout gate is:
+
+```bash
+./mvnw -T1C clean verify
+```
+
+The default build is hermetic. Property, integration, replay, chaos, venue
+contract, and benchmark tests are opt-in profiles documented in
+`config/README.md`. The network-backed NVD audit is intentionally separate
+from normal verification and requires an NVD API key:
+
+```bash
+NVD_API_KEY=... ./mvnw -Pnvd-audit verify
+```
 
 ## Golden sources
 

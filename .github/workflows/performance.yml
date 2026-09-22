@@ -1,0 +1,29 @@
+name: Performance report
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: [self-hosted, linux, x64, basis-performance]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Build benchmark harness
+        run: ./mvnw -Pbenchmark-tests -pl basis-benchmarks -am clean package
+      - name: Run benchmarks
+        run: java -jar basis-benchmarks/target/benchmarks.jar -rf json -rff basis-benchmarks/target/jmh-result.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-results
+          path: basis-benchmarks/target/jmh-result.json
+          if-no-files-found: error
+          retention-days: 90
