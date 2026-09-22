@@ -9,15 +9,23 @@
 | Capability | Contract | Evidence |
 |---|---|---|
 | Instrument metadata | `public/get_instrument`, `public/get_instruments` | OBSERVED against production |
-| Public JSON-RPC feed | `wss://www.deribit.com/ws/api/v2` | DOCUMENTED; capture pending |
-| Bounded book | `book.<instrument>.none.20.<interval>` | DOCUMENTED; image semantics require capture proof |
+| Public JSON-RPC feed | `wss://www.deribit.com/ws/api/v2` | DOCUMENTED; short Phase 0 smoke observed |
+| Bounded book | `book.<instrument>.none.20.<interval>` | DOCUMENTED; codec/replay fixture tested; production gate pending |
 | Standard interval | `100ms` | DOCUMENTED |
 | Finest JSON interval | `raw`, nominal 1 ms aggregation | DOCUMENTED; authorized users only |
 | Order/private isolation | Separate connections to avoid TCP head-of-line blocking | DOCUMENTED |
 
 The bounded feed is treated as a complete top-N image only after captured wire
 evidence proves that semantic. Until then it is not admitted to a trustworthy
-production book. The full-depth incremental channel is a separate contract.
+production book. The adapter enforces this with a default-off
+`completeImageCertified` profile capability rather than relying on operator
+convention. The full-depth incremental channel is a separate contract.
+
+The Phase 3 parser fixture at
+`basis-sim/src/test/resources/wire/market-data/deribit-bounded-20-image.json`
+is a sanitized official-documentation example, not proof from a production
+capture. Its hash is pinned by the adjacent `SHA256SUMS` file and replayed through
+the production parser to a stable normalized digest.
 
 ## Observed representative instruments
 
