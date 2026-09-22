@@ -46,12 +46,13 @@ source, and the complete public payload in one JSONL record per message. Bybit
 and Deribit are captured concurrently in one process. Each run emits a manifest
 with endpoint, subscription, byte count, SHA-256 digest, and errors.
 
-The tool establishes receive-age/skew evidence. It does not claim T1-T13
-production latency because the Java execution path does not yet exist.
+The Java public market-data runner exercises T1-T5 through the production
+transport, parser, ingress lane, and fixed-depth book. It reports local stage
+percentiles with a bounded rolling window. It still does not claim full T1-T13
+production latency because private execution stages are not present.
 
 ## Threshold status
 
 No universal millisecond threshold is authorized in Phase 0. Candidate limits
 must be published with the economic analysis and recalibrated on the selected
 production host during Phases 13 and 14.
-

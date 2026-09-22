@@ -1,6 +1,6 @@
 # Deribit Capability Contract
 
-**Evidence date:** 2026-09-20  
+**Evidence date:** 2026-09-22  
 **Scope:** Public metadata and bounded public order-book inputs for Phase 0  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
@@ -26,6 +26,11 @@ The Phase 3 parser fixture at
 is a sanitized official-documentation example, not proof from a production
 capture. Its hash is pinned by the adjacent `SHA256SUMS` file and replayed through
 the production parser to a stable normalized digest.
+
+The live public feed serializes some price and amount values in scientific
+notation (observed examples include `5.0e3` and `4.54e4`). The parser accepts
+such values only when they convert exactly to configured integer ticks or lots;
+inexact or overflowing values fail closed without floating-point conversion.
 
 ## Observed representative instruments
 

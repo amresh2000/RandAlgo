@@ -68,6 +68,44 @@ final class FixedDepthOrderBookTest {
     }
 
     @Test
+    void boundedDeltaBookDropsTailAndIgnoresUpdatesOutsideVisibleDepth() {
+        FixedDepthOrderBook book =
+                new FixedDepthOrderBook(
+                        1,
+                        101,
+                        11,
+                        2,
+                        1,
+                        10,
+                        100,
+                        0,
+                        BookSequenceMode.SNAPSHOT_DELTA_MONOTONIC,
+                        BookSequenceField.UPDATE_ID,
+                        true);
+        BookTestUpdate update =
+                new BookTestUpdate()
+                        .reset(BookUpdateType.SNAPSHOT, 1)
+                        .bid(100, 10)
+                        .bid(99, 10)
+                        .ask(102, 10)
+                        .ask(103, 10);
+        assertEquals(BookMutationStatus.APPLIED, book.apply(update));
+
+        assertEquals(
+                BookMutationStatus.APPLIED,
+                book.apply(update.reset(BookUpdateType.DELTA, 2).bid(101, 20).ask(104, 20)));
+        assertEquals(101, book.priceTicks(BookSide.BID, 0));
+        assertEquals(100, book.priceTicks(BookSide.BID, 1));
+        assertEquals(102, book.priceTicks(BookSide.ASK, 0));
+        assertEquals(103, book.priceTicks(BookSide.ASK, 1));
+        assertEquals(
+                BookMutationStatus.APPLIED,
+                book.apply(update.reset(BookUpdateType.DELTA, 3).bid(98, 0).ask(102, 0)));
+        assertEquals(1, book.depth(BookSide.ASK));
+        assertEquals(103, book.bestPriceTicks(BookSide.ASK));
+    }
+
+    @Test
     void malformedOrCrossedStateRevokesTrustAndRequiresNewImage() {
         FixedDepthOrderBook book = book(0, BookSequenceMode.SNAPSHOT_DELTA_MONOTONIC);
         BookTestUpdate update =

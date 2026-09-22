@@ -167,10 +167,12 @@ public final class DeribitBoundedBookParser {
         while (true) {
             if (++count > profile.maximumDepth()) return MarketDataParseStatus.TOO_MANY_LEVELS;
             if (!cursor.consume((byte) '[')) return cursor.status();
-            if (!cursor.readScaledDecimal(profile.priceScale(), number)) return cursor.status();
+            if (!cursor.readScaledDecimalWithExponent(profile.priceScale(), number))
+                return cursor.status();
             final long price = number.value();
             if (!cursor.consume((byte) ',')) return cursor.status();
-            if (!cursor.readScaledDecimal(profile.quantityScale(), number)) return cursor.status();
+            if (!cursor.readScaledDecimalWithExponent(profile.quantityScale(), number))
+                return cursor.status();
             final long quantity = number.value();
             if (!cursor.consume((byte) ']')) return cursor.status();
             if (price <= 0 || quantity < 0) return MarketDataParseStatus.INVALID_NUMBER;
