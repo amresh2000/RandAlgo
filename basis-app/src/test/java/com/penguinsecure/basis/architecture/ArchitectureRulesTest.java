@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -105,14 +106,16 @@ final class ArchitectureRulesTest {
     }
 
     @Test
-    void hotPackagesUseInjectedClocks() {
+    void onlyClockAdaptersReadJvmClocks() {
         noClasses()
                 .that()
-                .resideInAnyPackage(hotPackages)
+                .resideOutsideOfPackage("com.penguinsecure.basis.core.time.system..")
                 .should()
                 .callMethod(System.class, "currentTimeMillis")
                 .orShould()
                 .callMethod(System.class, "nanoTime")
+                .orShould()
+                .callMethod(Instant.class, "now")
                 .check(basisClasses);
     }
 
