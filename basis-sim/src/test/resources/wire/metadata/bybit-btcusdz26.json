@@ -1,0 +1,21 @@
+{
+  "evidenceDate": "2026-09-20",
+  "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&symbol=BTCUSDZ26",
+  "instrument": {
+    "baseCoin": "BTC",
+    "contractType": "InverseFutures",
+    "deliveryFeeRate": "0.0005",
+    "deliveryTime": "1798185600000",
+    "lotSizeFilter": {
+      "minOrderQty": "1",
+      "qtyStep": "1"
+    },
+    "priceFilter": {
+      "tickSize": "0.50"
+    },
+    "quoteCoin": "USD",
+    "settleCoin": "BTC",
+    "status": "Trading",
+    "symbol": "BTCUSDZ26"
+  }
+}

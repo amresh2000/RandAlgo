@@ -1,0 +1,44 @@
+# Public Feed Capture Procedure
+
+Run from a time-synchronized Linux host with Python 3.11 or newer:
+
+```bash
+python3 tools/capture_public_feeds.py \
+  --duration-seconds 3600 \
+  --output-dir basis-sim/src/test/resources/wire/captures/<utc-run-id>
+```
+
+The default profiles are Bybit inverse depth 50 for `BTCUSD` and Deribit
+ungrouped depth 20 at `100ms` for `BTC-PERPETUAL`. The latter is the public
+fallback, not proof that the strategy can meet its economic gate. Raw Deribit
+capture is added only after entitlement is confirmed and without storing
+credentials in the repository.
+
+For each evidence set:
+
+1. Record host, region, kernel, Python version, clock-sync status, DNS results,
+   and route information alongside the generated manifest.
+2. Capture both feeds in the same process for comparable monotonic timestamps.
+3. Include connection establishment, at least one quiet period, active period,
+   and volatility burst. Run separate controlled reconnect cases.
+4. Preserve raw evidence outside Git when large; commit only reviewed,
+   sanitized, checksummed fixtures needed by contract tests.
+5. Reject any run whose manifest contains errors or either JSONL file is empty.
+6. Never record credentials or private frames with this tool.
+
+Validate the local frame codec before a run:
+
+```bash
+python3 -m unittest discover -s tools/tests -v
+```
+
+Generate the same-clock cadence/skew report:
+
+```bash
+python3 tools/analyze_public_capture.py \
+  basis-sim/src/test/resources/wire/captures/<utc-run-id> \
+  --output basis-sim/src/test/resources/wire/captures/<utc-run-id>/analysis.json
+```
+
+The report describes the captured sample only. It cannot establish a production
+threshold until the required representative dataset and holdout analysis exist.
