@@ -1,7 +1,7 @@
 # Deribit Capability Contract
 
 **Evidence date:** 2026-09-22  
-**Scope:** Public metadata and bounded public order-book inputs for Phase 0  
+**Scope:** Public market data plus the Phase 10 authenticated order/private boundary  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
 ## Admitted endpoints and profiles
@@ -14,6 +14,11 @@
 | Standard interval | `100ms` | DOCUMENTED |
 | Finest JSON interval | `raw`, nominal 1 ms aggregation | DOCUMENTED; authorized users only |
 | Order/private isolation | Separate connections to avoid TCP head-of-line blocking | DOCUMENTED |
+| Signed authentication | `public/auth` with `client_signature`; tokens refreshed before expiry | DOCUMENTED; offline golden tested |
+| Order entry | IOC `private/buy`, `private/sell`, and `private/cancel` for `BTC-PERPETUAL` | OFFLINE TESTED; testnet pending |
+| Private order truth | `user.orders.BTC-PERPETUAL.raw` | OFFLINE TESTED; testnet pending |
+| Private trade truth | `user.trades.BTC-PERPETUAL.raw`, currency-scoped trade-ID deduplication | OFFLINE TESTED; testnet pending |
+| Reconciliation | bounded open orders plus paged order history, complete-only publication | OFFLINE TESTED; testnet pending |
 
 The bounded feed is treated as a complete top-N image only after captured wire
 evidence proves that semantic. Until then it is not admitted to a trustworthy
@@ -61,12 +66,24 @@ post-v1 and cannot be substituted without a new adapter/book ADR and entitlement
 - Cross-instrument sequence or time order is never inferred.
 - A malformed image, reconnect, failed publication, impossible book, or stale
   deadline revokes new exposure.
+- JSON-RPC responses correlate by monotonic request ID rather than arrival order.
+- A command response cannot invent a fill; only private trade identity/content can
+  publish a fill.
+- A lost order response becomes write-ambiguous and a lost private-truth socket
+  makes every active local order disconnected/UNKNOWN. Neither path resubmits.
+- The initial order profile is inverse `BTC-PERPETUAL`: amount scale 0 in native
+  USD units and price scale 2. Other instruments remain unsupported until their
+  amount, tick, minimum, and payoff metadata are separately certified.
+- Cancel-on-disconnect is encoded but disabled until its connection/account scope
+  is observed with company-owned testnet credentials.
 
 ## Outstanding Phase 0 evidence
 
 - Capture proof for bounded top-N image semantics and reconnect behavior.
 - Raw-feed and account entitlements.
 - Account-specific fees, limits, and private reconciliation behavior.
+- Auth token lifetime, private message ordering, rate-tier behavior, and
+  cancel-on-disconnect scope under the intended company subaccount.
 - Measured endpoint RTT/jitter from candidate regions.
 
 ## Sources
