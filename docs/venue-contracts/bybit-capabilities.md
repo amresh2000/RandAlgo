@@ -1,7 +1,7 @@
 # Bybit Capability Contract
 
-**Evidence date:** 2026-09-22  
-**Scope:** Public market data plus the offline-certified authenticated boundary through Phase 9  
+**Evidence date:** 2026-09-23  
+**Scope:** Public market data, the offline-certified authenticated boundary, and the Phase 12 certification harness  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
 ## Admitted endpoints and profiles
@@ -42,6 +42,12 @@ Live testnet certification is still pending company-provided, withdrawal-disable
 credentials and explicit authorization. The outstanding checks are recorded in
 `docs/phase-9-bybit-gateway-runbook.md` and must pass before this capability is
 marked production-certified.
+
+Phase 12 adds a fail-closed, content-addressed evidence matrix and runbook at
+`docs/phase-12-testnet-certification-runbook.md`. This makes live results
+repeatable and reviewable but is not itself live evidence. Bybit remains
+testnet-uncertified until every applicable scenario, both soak windows, fixture
+approval, and the aggregate exit gate pass.
 
 No exact `u + 1` continuity rule is admitted. A received snapshot replaces the
 book. A zero delta quantity deletes the level. Observed reconnect, duplicate,

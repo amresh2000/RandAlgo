@@ -1,7 +1,7 @@
 # Deribit Capability Contract
 
-**Evidence date:** 2026-09-22  
-**Scope:** Public market data plus the Phase 10 authenticated order/private boundary  
+**Evidence date:** 2026-09-23  
+**Scope:** Public market data, the Phase 10 authenticated boundary, and the Phase 12 certification harness  
 **Evidence labels:** DOCUMENTED, OBSERVED, INFERRED, UNKNOWN
 
 ## Admitted endpoints and profiles
@@ -36,6 +36,12 @@ The live public feed serializes some price and amount values in scientific
 notation (observed examples include `5.0e3` and `4.54e4`). The parser accepts
 such values only when they convert exactly to configured integer ticks or lots;
 inexact or overflowing values fail closed without floating-point conversion.
+
+Phase 12 adds a fail-closed, content-addressed evidence matrix and runbook at
+`docs/phase-12-testnet-certification-runbook.md`. This is harness evidence, not
+a claim that authenticated testnet scenarios have run. Deribit remains
+testnet-uncertified until the live matrix (including token expiry), both soak
+windows, fixture approval, and the aggregate exit gate pass.
 
 ## Observed representative instruments
 
