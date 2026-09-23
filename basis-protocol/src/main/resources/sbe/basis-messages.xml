@@ -142,6 +142,12 @@
       <validValue name="KILL">3</validValue>
       <validValue name="SUSPEND_STRATEGY">4</validValue>
       <validValue name="RESUME_STRATEGY">5</validValue>
+      <validValue name="CANCEL_ALL">6</validValue>
+      <validValue name="RECONCILE">7</validValue>
+      <validValue name="SNAPSHOT">8</validValue>
+      <validValue name="STAGE_CONFIG">9</validValue>
+      <validValue name="ACTIVATE_CONFIG">10</validValue>
+      <validValue name="SHUTDOWN">11</validValue>
     </enum>
 
     <enum name="ReconciliationStatus" encodingType="uint8">
